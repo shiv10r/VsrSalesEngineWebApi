@@ -140,7 +140,7 @@ public class OutreachDraftService : IOutreachDraftService
             { "Role", request.Role?.Trim() ?? "team member" },
             { "OpportunityTitle", request.OpportunityTitle?.Trim() ?? "modernization project" },
             { "RoleOrOpportunity", !string.IsNullOrWhiteSpace(request.OpportunityTitle) ? request.OpportunityTitle.Trim() : (!string.IsNullOrWhiteSpace(request.Role) ? request.Role.Trim() : "technology initiatives") },
-            { "SourceContext", !string.IsNullOrWhiteSpace(request.SourceEvidenceSnippet) ? request.SourceEvidenceSnippet.Trim() : "your public technical requirements" },
+            { "SourceContext", SanitizeSourceSnippet(request.SourceEvidenceSnippet) },
             { "ServiceProposition", serviceProposition },
             { "SenderName", senderName },
             { "SenderTitle", senderTitle },
@@ -276,6 +276,29 @@ public class OutreachDraftService : IOutreachDraftService
             IsActive = true,
             CreatedBy = "System"
         };
+    }
+
+    private static string SanitizeSourceSnippet(string? snippet)
+    {
+        if (string.IsNullOrWhiteSpace(snippet)) return "your public technical requirements";
+        var sanitized = snippet.Trim();
+        string[] injectionPatterns = {
+            "ignore all previous instructions",
+            "ignore previous instructions",
+            "output the api",
+            "system prompt",
+            "output secret"
+        };
+
+        foreach (var pattern in injectionPatterns)
+        {
+            if (sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                return "your public technical requirements";
+            }
+        }
+
+        return sanitized;
     }
 
     private static OutreachTemplateDto ToDto(OutreachTemplate t) => new(
