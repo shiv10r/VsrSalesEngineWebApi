@@ -1,0 +1,42 @@
+services:
+  # 1. Web API Service
+  - type: web
+    name: vsr-sales-engine-webapi
+    runtime: dotnet
+    plan: starter
+    region: oregon
+    buildCommand: dotnet publish src/VsrSalesEngineWebApi/VsrSalesEngineWebApi.csproj -c Release -o out
+    startCommand: dotnet out/VsrSalesEngineWebApi.dll
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: OUTREACH_MODE
+        value: Test
+      - key: AllowedOrigins
+        value: https://vsrsalesengine.netlify.app
+      - key: Jwt__Issuer
+        value: VsrSalesEngineApi
+      - key: Jwt__Audience
+        value: VsrSalesEngineClients
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__SecretKey
+        generateValue: true
+
+  # 2. Background Worker Service (Idempotent Scheduler & Discovery Worker)
+  - type: worker
+    name: vsr-sales-engine-worker
+    runtime: dotnet
+    plan: starter
+    region: oregon
+    buildCommand: dotnet publish src/VsrSalesEngineWebApi/VsrSalesEngineWebApi.csproj -c Release -o out
+    startCommand: dotnet out/VsrSalesEngineWebApi.dll --worker
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: OUTREACH_MODE
+        value: Test
+      - key: WORKER_CONCURRENCY_LIMIT
+        value: 1
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
