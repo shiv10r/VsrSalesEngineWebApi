@@ -8,7 +8,7 @@ COPY ["src/VsrSalesEngineWebApi/VsrSalesEngineWebApi.csproj", "src/VsrSalesEngin
 COPY ["src/VsrSalesEngineWebApi.Core/VsrSalesEngineWebApi.Core.csproj", "src/VsrSalesEngineWebApi.Core/"]
 COPY ["src/VsrSalesEngineWebApi.Infrastructure/VsrSalesEngineWebApi.Infrastructure.csproj", "src/VsrSalesEngineWebApi.Infrastructure/"]
 COPY ["tests/VsrSalesEngineWebApi.Tests/VsrSalesEngineWebApi.Tests.csproj", "tests/VsrSalesEngineWebApi.Tests/"]
-COPY ["VsrSalesEngineWebApi.sln", "./"]
+COPY ["VsrSalesEngineWebApi.slnx", "./"]
 
 RUN dotnet restore "src/VsrSalesEngineWebApi/VsrSalesEngineWebApi.csproj"
 
