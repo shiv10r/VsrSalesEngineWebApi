@@ -59,7 +59,7 @@ public class ArchitectureLayeringTests
         var service = new Core.Services.OpportunityService(repoMock.Object);
 
         var result = await service.CreateOpportunityAsync(new Core.DTOs.CreateOpportunityDto(
-            "Acme Corp", "Senior Dev", "Careers", "Remote", "High", "Individual developer", false, null, null
+            "Acme Corp", "Senior Dev", "Careers", "Remote", "High", "Individual developer", false, null, null, null, null
         ));
 
         Assert.Equal("OP-EXISTING", result.Id);
