@@ -5,6 +5,7 @@ namespace VsrSalesEngineWebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("health")]
 [AllowAnonymous]
 public class HealthController : ControllerBase
 {

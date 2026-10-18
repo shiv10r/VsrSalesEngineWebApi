@@ -41,3 +41,16 @@ public record SimulateFailureRequestDto(
     string? JobType,
     string? ReferenceId
 );
+
+public record SmokeCheckItemDto(
+    string Component,
+    string Status,
+    string Detail
+);
+
+public record OperationalSmokeDrillResultDto(
+    string Status,
+    bool AllChecksPassed,
+    List<SmokeCheckItemDto> Checks,
+    DateTime TimestampUtc
+);
