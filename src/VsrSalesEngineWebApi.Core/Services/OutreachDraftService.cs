@@ -34,9 +34,12 @@ public class OutreachDraftService : IOutreachDraftService
     private const string DefaultOptOutUrl = "https://vsrtechnologies.com/outreach/opt-out";
     private const string DefaultPhysicalAddress = "100 Enterprise Way, Suite 400, Austin TX 78701";
 
-    public OutreachDraftService(IOutreachTemplateRepository templateRepository)
+    private readonly ILLMRouter? _llmRouter;
+
+    public OutreachDraftService(IOutreachTemplateRepository templateRepository, ILLMRouter? llmRouter = null)
     {
         _templateRepository = templateRepository;
+        _llmRouter = llmRouter;
     }
 
     public async Task<IReadOnlyList<OutreachTemplateDto>> GetTemplatesAsync(string? category = null)
