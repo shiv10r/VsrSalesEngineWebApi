@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VsrSalesEngineWebApi.Core.DTOs;
@@ -18,12 +19,20 @@ public class OpportunitiesController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<OpportunityDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] string? query, [FromQuery] string? status, [FromQuery] string? source, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResultDto<OpportunityDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaged(
+        [FromQuery] string? query,
+        [FromQuery] string? status,
+        [FromQuery] string? source,
+        [FromQuery] string? fit,
+        [FromQuery] bool? hasVendorDocs,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
-        var filter = new OpportunityFilterDto(query, status, source);
-        var results = await _opportunityService.GetOpportunitiesAsync(filter, cancellationToken);
-        return Ok(results);
+        var filter = new OpportunityFilterDto(query, status, source, fit, hasVendorDocs, page, pageSize);
+        var pagedResults = await _opportunityService.GetPagedOpportunitiesAsync(filter, cancellationToken);
+        return Ok(pagedResults);
     }
 
     [HttpGet("{id}")]
@@ -43,7 +52,8 @@ public class OpportunitiesController : ControllerBase
     {
         try
         {
-            var created = await _opportunityService.CreateOpportunityAsync(dto, cancellationToken);
+            var actor = User.FindFirstValue(ClaimTypes.Name) ?? "Sales Member";
+            var created = await _opportunityService.CreateOpportunityAsync(dto, actor, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (ArgumentException ex)
@@ -52,16 +62,44 @@ public class OpportunitiesController : ControllerBase
         }
     }
 
-    [HttpPatch("{id}/status")]
+    [HttpPut("{id}")]
     [ProducesResponseType(typeof(OpportunityDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateStatusRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateOpportunityDto dto, CancellationToken cancellationToken)
     {
-        var updated = await _opportunityService.UpdateStatusAsync(id, request.Status, cancellationToken);
+        var actor = User.FindFirstValue(ClaimTypes.Name) ?? "Sales Member";
+        var updated = await _opportunityService.UpdateOpportunityAsync(id, dto, actor, cancellationToken);
         if (updated == null) return NotFound(new { message = $"Opportunity '{id}' not found." });
         return Ok(updated);
     }
+
+    [HttpPatch("{id}/status")]
+    [ProducesResponseType(typeof(OpportunityDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TransitionStatus(string id, [FromBody] TransitionStatusDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var actor = User.FindFirstValue(ClaimTypes.Name) ?? "Sales Member";
+            var updated = await _opportunityService.TransitionStatusAsync(id, dto, actor, cancellationToken);
+            if (updated == null) return NotFound(new { message = $"Opportunity '{id}' not found." });
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Archive(string id, CancellationToken cancellationToken)
+    {
+        var actor = User.FindFirstValue(ClaimTypes.Name) ?? "Sales Member";
+        var success = await _opportunityService.ArchiveOpportunityAsync(id, actor, cancellationToken);
+        if (!success) return NotFound(new { message = $"Opportunity '{id}' not found." });
+        return NoContent();
+    }
 }
-
-public record UpdateStatusRequest(string Status);
-
