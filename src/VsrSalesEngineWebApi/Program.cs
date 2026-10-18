@@ -56,6 +56,7 @@ builder.Services.AddSingleton<ISuppressionRepository, SuppressionRepository>();
 builder.Services.AddSingleton<ICampaignRepository, CampaignRepository>();
 builder.Services.AddSingleton<IAutomationScheduleRepository, AutomationScheduleRepository>();
 builder.Services.AddSingleton<IDistributedLockService, DistributedLockService>();
+builder.Services.AddSingleton<IExecutionRepository, ExecutionRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOpportunityService, OpportunityService>();
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
@@ -64,6 +65,7 @@ builder.Services.AddScoped<IOutreachDraftService, OutreachDraftService>();
 builder.Services.AddScoped<IOutreachSender, OutreachSenderService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IScheduleExecutionService, ScheduleExecutionService>();
+builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 
 // CORS configuration for local development UI
 builder.Services.AddCors(options =>
