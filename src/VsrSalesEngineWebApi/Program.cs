@@ -67,6 +67,12 @@ builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IScheduleExecutionService, ScheduleExecutionService>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 
+// LLM & AI Services (Gemini as default provider)
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ILLMProvider, GeminiLlmProvider>();
+builder.Services.AddSingleton<ILLMRouter, LlmRouter>();
+builder.Services.AddScoped<IAiFormService, AiFormService>();
+
 // CORS configuration for local development UI and deployed frontend
 var configuredOrigins = builder.Configuration["AllowedOrigins"];
 var allowedOriginsList = new List<string> { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000" };
