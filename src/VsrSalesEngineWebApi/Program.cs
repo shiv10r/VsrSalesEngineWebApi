@@ -67,12 +67,19 @@ builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IScheduleExecutionService, ScheduleExecutionService>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 
-// CORS configuration for local development UI
+// CORS configuration for local development UI and deployed frontend
+var configuredOrigins = builder.Configuration["AllowedOrigins"];
+var allowedOriginsList = new List<string> { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000" };
+if (!string.IsNullOrWhiteSpace(configuredOrigins))
+{
+    allowedOriginsList.AddRange(configuredOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+}
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalUi", policy =>
+    options.AddPolicy("AllowConfiguredOrigins", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000")
+        policy.WithOrigins(allowedOriginsList.Distinct().ToArray())
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -84,7 +91,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
-app.UseCors("AllowLocalUi");
+app.UseCors("AllowConfiguredOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 

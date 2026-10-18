@@ -12,6 +12,7 @@ using Xunit;
 
 namespace VsrSalesEngineWebApi.Tests;
 
+[Collection("OutreachSenderStateCollection")]
 public class ApiIntegrationAndConstraintTests
 {
     private readonly IOpportunityRepository _opportunityRepo;
