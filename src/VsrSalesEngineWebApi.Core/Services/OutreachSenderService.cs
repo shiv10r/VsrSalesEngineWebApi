@@ -18,8 +18,44 @@ public class OutreachSenderService : IOutreachSender
         _suppressionRepository = suppressionRepository;
     }
 
+    public static bool IsKillSwitchEngaged { get; set; } = false;
+    public static Func<string, string?> GetEnvironmentVariable { get; set; } = Environment.GetEnvironmentVariable;
+
+    public static bool CheckKillSwitchActive()
+    {
+        return IsKillSwitchEngaged || string.Equals(GetEnvironmentVariable("OUTREACH_KILL_SWITCH"), "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static void ResetState()
+    {
+        IdempotencyStore.Clear();
+        IsKillSwitchEngaged = false;
+        GetEnvironmentVariable = Environment.GetEnvironmentVariable;
+    }
+
     public async Task<OutreachSendResult> SendOutreachAsync(OutreachSendRequest request, CancellationToken cancellationToken = default)
     {
+        // 0. Emergency Kill Switch Check (T069)
+        if (CheckKillSwitchActive())
+        {
+            var killSwitchResult = new OutreachSendResult(
+                Success: false,
+                MessageId: $"MSG-KILL-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+                Status: "KillSwitchEngaged",
+                Detail: "Emergency kill switch is engaged. All outbound outreach is immediately halted.",
+                Suppressed: true,
+                WasRoutedToSink: false,
+                ProviderMessageId: null
+            );
+
+            if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+            {
+                IdempotencyStore[request.IdempotencyKey] = killSwitchResult;
+            }
+
+            return killSwitchResult;
+        }
+
         // 1. Idempotency Check
         if (!string.IsNullOrWhiteSpace(request.IdempotencyKey) &&
             IdempotencyStore.TryGetValue(request.IdempotencyKey, out var existingResult))

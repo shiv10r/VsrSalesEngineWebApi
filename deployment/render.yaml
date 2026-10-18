@@ -7,6 +7,7 @@ services:
     region: oregon
     buildCommand: dotnet publish src/VsrSalesEngineWebApi/VsrSalesEngineWebApi.csproj -c Release -o out
     startCommand: dotnet out/VsrSalesEngineWebApi.dll
+    healthCheckPath: /health
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
