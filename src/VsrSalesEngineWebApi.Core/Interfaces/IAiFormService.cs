@@ -48,3 +48,4 @@ public interface IAiFormService
 {
     Task<AiFormParseResult> ParseFormPromptAsync(AiFormParseRequest request, CancellationToken cancellationToken = default);
 }
+
