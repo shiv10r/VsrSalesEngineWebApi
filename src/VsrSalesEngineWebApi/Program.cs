@@ -73,9 +73,16 @@ builder.Services.AddSingleton<ILLMProvider, GeminiLlmProvider>();
 builder.Services.AddSingleton<ILLMRouter, LlmRouter>();
 builder.Services.AddScoped<IAiFormService, AiFormService>();
 
+// Dynamic port binding for container environments (Vercel, Cloud Run, Docker)
+var port = Environment.GetEnvironmentVariable("PORT") ?? Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS");
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
 // CORS configuration for local development UI and deployed frontend
 var configuredOrigins = builder.Configuration["AllowedOrigins"];
-var allowedOriginsList = new List<string> { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000" };
+var allowedOriginsList = new List<string> { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "https://vsr-sales-engine-webapp.vercel.app" };
 if (!string.IsNullOrWhiteSpace(configuredOrigins))
 {
     allowedOriginsList.AddRange(configuredOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
@@ -85,7 +92,18 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowConfiguredOrigins", policy =>
     {
-        policy.WithOrigins(allowedOriginsList.Distinct().ToArray())
+        policy.SetIsOriginAllowed(origin =>
+              {
+                  if (string.IsNullOrWhiteSpace(origin)) return false;
+                  if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                  {
+                      return uri.Host == "localhost" ||
+                             uri.Host == "127.0.0.1" ||
+                             uri.Host.EndsWith("vercel.app", StringComparison.OrdinalIgnoreCase) ||
+                             allowedOriginsList.Contains(origin, StringComparer.OrdinalIgnoreCase);
+                  }
+                  return false;
+              })
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
