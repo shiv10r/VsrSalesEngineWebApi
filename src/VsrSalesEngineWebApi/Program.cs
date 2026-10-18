@@ -51,10 +51,12 @@ builder.Services.AddSingleton<IOpportunityRepository, OpportunityRepository>();
 builder.Services.AddSingleton<ISourceRegistryRepository, SourceRegistryRepository>();
 builder.Services.AddSingleton<ISearchProfileRepository, SearchProfileRepository>();
 builder.Services.AddSingleton<IContactRepository, ContactRepository>();
+builder.Services.AddSingleton<IOutreachTemplateRepository, OutreachTemplateRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOpportunityService, OpportunityService>();
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
 builder.Services.AddScoped<IContactService, ContactService>();
+builder.Services.AddScoped<IOutreachDraftService, OutreachDraftService>();
 
 // CORS configuration for local development UI
 builder.Services.AddCors(options =>
