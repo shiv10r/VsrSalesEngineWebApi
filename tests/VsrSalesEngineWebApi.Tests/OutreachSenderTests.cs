@@ -5,6 +5,7 @@ using Xunit;
 
 namespace VsrSalesEngineWebApi.Tests;
 
+[Collection("OutreachSenderStateCollection")]
 public class OutreachSenderTests
 {
     private readonly SuppressionRepository _suppressionRepo = new();
