@@ -48,8 +48,11 @@ builder.Services.AddAuthorization(options =>
 // Dependency Injection: Controller -> BLL (Service) -> Repository
 builder.Services.AddSingleton<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<IOpportunityRepository, OpportunityRepository>();
+builder.Services.AddSingleton<ISourceRegistryRepository, SourceRegistryRepository>();
+builder.Services.AddSingleton<ISearchProfileRepository, SearchProfileRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOpportunityService, OpportunityService>();
+builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
 
 // CORS configuration for local development UI
 builder.Services.AddCors(options =>
