@@ -12,10 +12,12 @@ namespace VsrSalesEngineWebApi.Controllers;
 public class OutreachController : ControllerBase
 {
     private readonly IOutreachDraftService _draftService;
+    private readonly IOutreachSender _outreachSender;
 
-    public OutreachController(IOutreachDraftService draftService)
+    public OutreachController(IOutreachDraftService draftService, IOutreachSender outreachSender)
     {
         _draftService = draftService;
+        _outreachSender = outreachSender;
     }
 
     [HttpGet("templates")]
@@ -103,5 +105,60 @@ public class OutreachController : ControllerBase
 
         var result = _draftService.ValidateDraft(request);
         return Ok(result);
+    }
+
+    [HttpPost("send")]
+    [ProducesResponseType(typeof(OutreachSendResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SendOutreach([FromBody] OutreachSendRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.RecipientEmail))
+        {
+            return BadRequest(new { message = "RecipientEmail is required." });
+        }
+
+        var result = await _outreachSender.SendOutreachAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("sink-messages")]
+    [ProducesResponseType(typeof(IReadOnlyList<VsrSalesEngineWebApi.Core.Entities.SinkMessage>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSinkMessages()
+    {
+        var messages = await _outreachSender.GetSinkMessagesAsync();
+        return Ok(messages);
+    }
+
+    [HttpGet("suppressions")]
+    [ProducesResponseType(typeof(IReadOnlyList<SuppressionDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSuppressions([FromQuery] string? query)
+    {
+        var suppressions = await _outreachSender.GetSuppressionsAsync(query);
+        return Ok(suppressions);
+    }
+
+    [HttpPost("suppressions")]
+    [ProducesResponseType(typeof(SuppressionDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddSuppression([FromBody] CreateSuppressionDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Target))
+        {
+            return BadRequest(new { message = "Target email or domain is required." });
+        }
+
+        var actor = User.FindFirstValue(ClaimTypes.Name) ?? "Sales Member";
+        var created = await _outreachSender.AddSuppressionAsync(dto, actor);
+        return CreatedAtAction(nameof(GetSuppressions), new { query = created.Target }, created);
+    }
+
+    [HttpDelete("suppressions/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveSuppression(string id)
+    {
+        var removed = await _outreachSender.RemoveSuppressionAsync(id);
+        if (!removed) return NotFound(new { message = $"Suppression '{id}' not found." });
+        return NoContent();
     }
 }
