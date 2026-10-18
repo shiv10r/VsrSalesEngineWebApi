@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VsrSalesEngineWebApi.Core/VsrSalesEngineWebApi.Core.csproj" />
+    <Project Path="src/VsrSalesEngineWebApi.Infrastructure/VsrSalesEngineWebApi.Infrastructure.csproj" />
+    <Project Path="src/VsrSalesEngineWebApi/VsrSalesEngineWebApi.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VsrSalesEngineWebApi.Tests/VsrSalesEngineWebApi.Tests.csproj" />
+  </Folder>
+</Solution>
