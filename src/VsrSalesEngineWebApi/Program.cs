@@ -53,12 +53,14 @@ builder.Services.AddSingleton<ISearchProfileRepository, SearchProfileRepository>
 builder.Services.AddSingleton<IContactRepository, ContactRepository>();
 builder.Services.AddSingleton<IOutreachTemplateRepository, OutreachTemplateRepository>();
 builder.Services.AddSingleton<ISuppressionRepository, SuppressionRepository>();
+builder.Services.AddSingleton<ICampaignRepository, CampaignRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOpportunityService, OpportunityService>();
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
 builder.Services.AddScoped<IContactService, ContactService>();
 builder.Services.AddScoped<IOutreachDraftService, OutreachDraftService>();
 builder.Services.AddScoped<IOutreachSender, OutreachSenderService>();
+builder.Services.AddScoped<ICampaignService, CampaignService>();
 
 // CORS configuration for local development UI
 builder.Services.AddCors(options =>
