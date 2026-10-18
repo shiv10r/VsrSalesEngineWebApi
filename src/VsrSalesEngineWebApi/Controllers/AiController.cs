@@ -68,3 +68,4 @@ public class AiController : ControllerBase
         return Ok(result);
     }
 }
+

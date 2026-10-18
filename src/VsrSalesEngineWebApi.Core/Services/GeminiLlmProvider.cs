@@ -128,3 +128,4 @@ public class GeminiLlmProvider : ILLMProvider
         return $"I noticed your technical modernization requirements and wanted to share how VSR Technologies delivers high-reliability software solutions. Based on your focus, our engineering team specializes in scalable systems with proven architecture and adherence to enterprise compliance standards.\n\nWould you be open to a brief 10-minute introductory conversation this week to discuss alignment?";
     }
 }
+

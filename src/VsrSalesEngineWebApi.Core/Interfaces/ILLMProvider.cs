@@ -30,3 +30,4 @@ public interface ILLMRouter
     string DefaultProviderName { get; }
     Task<LLMCompletionResult> RouteCompletionAsync(LLMCompletionRequest request, string? preferredProvider = null, CancellationToken cancellationToken = default);
 }
+
