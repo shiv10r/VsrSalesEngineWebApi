@@ -101,6 +101,66 @@ public class SourceRegistryRepository : ISourceRegistryRepository
                 CurrentDayRequests = 0,
                 HealthStatus = "Healthy",
                 LastCheckedAtUtc = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = "SRC-007",
+                Name = "Hacker News (Freelance & Who's Hiring)",
+                Description = "Live founder and engineering lead contractor postings from monthly Hacker News threads.",
+                Category = "ContractBoard",
+                PolicyStatus = "Active",
+                AllowsDirectFetch = true,
+                TermsUrl = "https://news.ycombinator.com",
+                AttributionNotice = "Public Hacker News community thread with canonical story link.",
+                DailyRequestLimit = 600,
+                CurrentDayRequests = 12,
+                HealthStatus = "Healthy",
+                LastCheckedAtUtc = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = "SRC-008",
+                Name = "We Work Remotely (Contracts)",
+                Description = "Live verified remote programming and software contract feeds from We Work Remotely.",
+                Category = "ContractBoard",
+                PolicyStatus = "Active",
+                AllowsDirectFetch = true,
+                TermsUrl = "https://weworkremotely.com",
+                AttributionNotice = "Syndicated WWR RSS feed with canonical job URL.",
+                DailyRequestLimit = 500,
+                CurrentDayRequests = 15,
+                HealthStatus = "Healthy",
+                LastCheckedAtUtc = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = "SRC-009",
+                Name = "Remotive (Contract / Freelance)",
+                Description = "Live contract-only software development projects and developer contractor roles from Remotive.",
+                Category = "ContractBoard",
+                PolicyStatus = "Active",
+                AllowsDirectFetch = true,
+                TermsUrl = "https://remotive.com",
+                AttributionNotice = "Remotive public API with canonical job application URL.",
+                DailyRequestLimit = 500,
+                CurrentDayRequests = 8,
+                HealthStatus = "Healthy",
+                LastCheckedAtUtc = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = "SRC-010",
+                Name = "Jobicy (Developer Contracts)",
+                Description = "Live remote engineering contracts and developer projects from Jobicy.",
+                Category = "ContractBoard",
+                PolicyStatus = "Active",
+                AllowsDirectFetch = true,
+                TermsUrl = "https://jobicy.com",
+                AttributionNotice = "Jobicy Engineering API with direct job listing link.",
+                DailyRequestLimit = 400,
+                CurrentDayRequests = 5,
+                HealthStatus = "Healthy",
+                LastCheckedAtUtc = DateTime.UtcNow
             }
         };
 

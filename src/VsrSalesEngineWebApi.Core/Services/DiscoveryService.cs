@@ -9,15 +9,18 @@ public class DiscoveryService : IDiscoveryService
     private readonly ISourceRegistryRepository _sourceRepository;
     private readonly ISearchProfileRepository _profileRepository;
     private readonly IOpportunityRepository _opportunityRepository;
+    private readonly ILiveJobFeedService? _liveJobFeedService;
 
     public DiscoveryService(
         ISourceRegistryRepository sourceRepository,
         ISearchProfileRepository profileRepository,
-        IOpportunityRepository opportunityRepository)
+        IOpportunityRepository opportunityRepository,
+        ILiveJobFeedService? liveJobFeedService = null)
     {
         _sourceRepository = sourceRepository;
         _profileRepository = profileRepository;
         _opportunityRepository = opportunityRepository;
+        _liveJobFeedService = liveJobFeedService;
     }
 
     public async Task<IReadOnlyList<SourceDefinitionDto>> GetSourcesAsync(CancellationToken cancellationToken = default)
@@ -144,15 +147,28 @@ public class DiscoveryService : IDiscoveryService
                 continue;
             }
 
-            // Simulate deterministic discovery evaluation per source
-            int fetched = 4;
+            // Fetch real live opportunities if live feed service is active
             int newMatches = 0;
             int dups = 0;
 
             await _sourceRepository.IncrementDailyRequestCountAsync(sourceDef.Id, 1, cancellationToken);
 
-            var simulatedCandidates = GenerateSimulatedCandidates(sourceName, keywords, location);
-            foreach (var candidate in simulatedCandidates)
+            IReadOnlyList<Opportunity> candidates;
+            if (_liveJobFeedService != null && IsLiveFeedSource(sourceName))
+            {
+                candidates = await _liveJobFeedService.FetchAllLiveContractJobsAsync(keywords, new[] { sourceName }, 15, cancellationToken);
+                if (candidates.Count == 0)
+                {
+                    candidates = GenerateSimulatedCandidates(sourceName, keywords, location);
+                }
+            }
+            else
+            {
+                candidates = GenerateSimulatedCandidates(sourceName, keywords, location);
+            }
+
+            int fetched = candidates.Count;
+            foreach (var candidate in candidates)
             {
                 totalEvaluated++;
                 var existing = await _opportunityRepository.GetByDeduplicationKeyAsync(candidate.DeduplicationKey, cancellationToken);
@@ -274,4 +290,16 @@ public class DiscoveryService : IDiscoveryService
         p.CreatedAtUtc,
         p.UpdatedAtUtc
     );
+
+    private static bool IsLiveFeedSource(string sourceName)
+    {
+        return sourceName.Contains("Hacker", StringComparison.OrdinalIgnoreCase) ||
+               sourceName.Contains("We Work", StringComparison.OrdinalIgnoreCase) ||
+               sourceName.Contains("Remotive", StringComparison.OrdinalIgnoreCase) ||
+               sourceName.Contains("Jobicy", StringComparison.OrdinalIgnoreCase) ||
+               sourceName.Contains("Approved feed", StringComparison.OrdinalIgnoreCase) ||
+               sourceName.Contains("Public job board", StringComparison.OrdinalIgnoreCase) ||
+               sourceName.Contains("Company careers", StringComparison.OrdinalIgnoreCase);
+    }
 }
+
