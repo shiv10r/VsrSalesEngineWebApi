@@ -5,6 +5,7 @@ using VsrSalesEngineWebApi.Core.Interfaces;
 using VsrSalesEngineWebApi.Core.Security;
 using VsrSalesEngineWebApi.Core.Services;
 using VsrSalesEngineWebApi.Infrastructure.Repositories;
+using VsrSalesEngineWebApi.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +60,7 @@ builder.Services.AddSingleton<IDistributedLockService, DistributedLockService>()
 builder.Services.AddSingleton<IExecutionRepository, ExecutionRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOpportunityService, OpportunityService>();
+builder.Services.AddScoped<ILiveJobFeedService, LiveJobFeedService>();
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
 builder.Services.AddScoped<IContactService, ContactService>();
 builder.Services.AddScoped<IOutreachDraftService, OutreachDraftService>();
