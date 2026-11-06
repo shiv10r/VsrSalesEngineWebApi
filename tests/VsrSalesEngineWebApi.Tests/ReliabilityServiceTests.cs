@@ -14,8 +14,8 @@ public class ReliabilityServiceTests
 
     public ReliabilityServiceTests()
     {
-        _executionRepo = new ExecutionRepository();
-        _scheduleRepo = new AutomationScheduleRepository();
+        _executionRepo = new ExecutionRepository(TestDbContextFactory.CreateSeeded());
+        _scheduleRepo = new AutomationScheduleRepository(TestDbContextFactory.CreateSeeded());
         _reliabilityService = new ReliabilityService(_executionRepo, _scheduleRepo);
     }
 

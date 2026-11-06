@@ -17,10 +17,10 @@ public class DomainEdgeCasesAndScoringTests
 
     public DomainEdgeCasesAndScoringTests()
     {
-        _opportunityRepo = new OpportunityRepository();
+        _opportunityRepo = new OpportunityRepository(TestDbContextFactory.CreateSeeded());
         _opportunityService = new OpportunityService(_opportunityRepo);
-        _suppressionRepo = new SuppressionRepository();
-        _campaignRepo = new CampaignRepository();
+        _suppressionRepo = new SuppressionRepository(TestDbContextFactory.CreateSeeded());
+        _campaignRepo = new CampaignRepository(TestDbContextFactory.CreateSeeded());
         _campaignService = new CampaignService(_campaignRepo);
     }
 

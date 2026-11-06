@@ -29,12 +29,12 @@ public class DeploymentAndOperationalSmokeTests
         _envMock = new Mock<IHostEnvironment>();
         _envMock.Setup(e => e.EnvironmentName).Returns("Production");
 
-        _opportunityRepo = new OpportunityRepository();
-        _sourceRegistry = new SourceRegistryRepository();
-        _executionRepo = new ExecutionRepository();
-        var scheduleRepo = new AutomationScheduleRepository();
+        _opportunityRepo = new OpportunityRepository(TestDbContextFactory.CreateSeeded());
+        _sourceRegistry = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
+        _executionRepo = new ExecutionRepository(TestDbContextFactory.CreateSeeded());
+        var scheduleRepo = new AutomationScheduleRepository(TestDbContextFactory.CreateSeeded());
         _reliabilityService = new ReliabilityService(_executionRepo, scheduleRepo);
-        _suppressionRepo = new SuppressionRepository();
+        _suppressionRepo = new SuppressionRepository(TestDbContextFactory.CreateSeeded());
         _outreachSender = new OutreachSenderService(_suppressionRepo);
 
         _healthController = new HealthController(_envMock.Object);

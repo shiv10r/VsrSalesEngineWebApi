@@ -1,112 +1,79 @@
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using VsrSalesEngineWebApi.Infrastructure.Data;
 
 namespace VsrSalesEngineWebApi.Infrastructure.Repositories;
 
 public class SuppressionRepository : ISuppressionRepository
 {
-    private static readonly ConcurrentDictionary<string, SuppressionRecord> Suppressions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly VsrDbContext _context;
 
-    static SuppressionRepository()
+    public SuppressionRepository(VsrDbContext context)
     {
-        var seed = new List<SuppressionRecord>
-        {
-            new()
-            {
-                Id = "SUP-001",
-                Target = "optout@example.com",
-                Type = "Email",
-                Reason = "OptOut",
-                Source = "UnsubscribeLink",
-                CreatedBy = "System",
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-10)
-            },
-            new()
-            {
-                Id = "SUP-002",
-                Target = "do-not-contact@prospect.org",
-                Type = "Email",
-                Reason = "OptOut",
-                Source = "UserRequest",
-                CreatedBy = "System",
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-5)
-            },
-            new()
-            {
-                Id = "SUP-003",
-                Target = "blocked-competitor.example",
-                Type = "Domain",
-                Reason = "BlockedByPolicy",
-                Source = "AdminAction",
-                CreatedBy = "System",
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-20)
-            }
-        };
-
-        foreach (var s in seed)
-        {
-            Suppressions[s.Id] = s;
-        }
+        _context = context;
     }
 
-    public Task<IReadOnlyList<SuppressionRecord>> GetAllAsync(string? query = null)
+    public async Task<IReadOnlyList<SuppressionRecord>> GetAllAsync(string? query = null)
     {
-        var q = Suppressions.Values.AsEnumerable();
+        var all = await _context.Suppressions.AsNoTracking().ToListAsync();
+        var q = all.AsEnumerable();
         if (!string.IsNullOrWhiteSpace(query))
         {
             q = q.Where(s => s.Target.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                              s.Reason.Contains(query, StringComparison.OrdinalIgnoreCase));
         }
 
-        var list = q.OrderByDescending(s => s.CreatedAtUtc).ToList();
-        return Task.FromResult<IReadOnlyList<SuppressionRecord>>(list);
+        return q.OrderByDescending(s => s.CreatedAtUtc).ToList();
     }
 
-    public Task<SuppressionRecord?> GetByIdAsync(string id)
+    public async Task<SuppressionRecord?> GetByIdAsync(string id)
     {
-        Suppressions.TryGetValue(id, out var record);
-        return Task.FromResult(record);
+        return await _context.Suppressions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
     }
 
-    public Task<bool> IsSuppressedAsync(string email)
+    public async Task<bool> IsSuppressedAsync(string email)
     {
-        if (string.IsNullOrWhiteSpace(email)) return Task.FromResult(false);
+        if (string.IsNullOrWhiteSpace(email)) return false;
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
+        var all = await _context.Suppressions.AsNoTracking().ToListAsync();
 
-        // 1. Check exact email suppression
-        var directMatch = Suppressions.Values.Any(s =>
+        var directMatch = all.Any(s =>
             s.Type.Equals("Email", StringComparison.OrdinalIgnoreCase) &&
             s.Target.Equals(normalizedEmail, StringComparison.OrdinalIgnoreCase));
 
-        if (directMatch) return Task.FromResult(true);
+        if (directMatch) return true;
 
-        // 2. Check domain suppression
         var atIndex = normalizedEmail.IndexOf('@');
         if (atIndex >= 0 && atIndex < normalizedEmail.Length - 1)
         {
             var domain = normalizedEmail[(atIndex + 1)..];
-            var domainMatch = Suppressions.Values.Any(s =>
+            var domainMatch = all.Any(s =>
                 s.Type.Equals("Domain", StringComparison.OrdinalIgnoreCase) &&
                 (s.Target.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
                  s.Target.Equals("@" + domain, StringComparison.OrdinalIgnoreCase)));
 
-            if (domainMatch) return Task.FromResult(true);
+            if (domainMatch) return true;
         }
 
-        return Task.FromResult(false);
+        return false;
     }
 
-    public Task<SuppressionRecord> AddAsync(SuppressionRecord record)
+    public async Task<SuppressionRecord> AddAsync(SuppressionRecord record)
     {
-        Suppressions[record.Id] = record;
-        return Task.FromResult(record);
+        _context.Suppressions.Add(record);
+        await _context.SaveChangesAsync();
+        return record;
     }
 
-    public Task<bool> RemoveAsync(string id)
+    public async Task<bool> RemoveAsync(string id)
     {
-        var removed = Suppressions.TryRemove(id, out _);
-        return Task.FromResult(removed);
+        var existing = await _context.Suppressions.FirstOrDefaultAsync(s => s.Id == id);
+        if (existing == null) return false;
+
+        _context.Suppressions.Remove(existing);
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

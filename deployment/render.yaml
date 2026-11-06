@@ -1,5 +1,6 @@
 services:
-  # 1. Web API Service
+  # Web API + autonomous discovery worker (runs in the same process as a hosted background service).
+  # A DB-backed distributed lock prevents duplicate discovery runs if this is ever scaled to multiple instances.
   - type: web
     name: vsr-sales-engine-webapi
     runtime: dotnet
@@ -23,21 +24,3 @@ services:
         sync: false
       - key: Jwt__SecretKey
         generateValue: true
-
-  # 2. Background Worker Service (Idempotent Scheduler & Discovery Worker)
-  - type: worker
-    name: vsr-sales-engine-worker
-    runtime: dotnet
-    plan: starter
-    region: oregon
-    buildCommand: dotnet publish src/VsrSalesEngineWebApi/VsrSalesEngineWebApi.csproj -c Release -o out
-    startCommand: dotnet out/VsrSalesEngineWebApi.dll --worker
-    envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Production
-      - key: OUTREACH_MODE
-        value: Test
-      - key: WORKER_CONCURRENCY_LIMIT
-        value: 1
-      - key: ConnectionStrings__DefaultConnection
-        sync: false

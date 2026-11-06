@@ -7,7 +7,7 @@ namespace VsrSalesEngineWebApi.Tests;
 
 public class OutreachDraftServiceTests
 {
-    private readonly OutreachTemplateRepository _repo = new();
+    private readonly OutreachTemplateRepository _repo = new(TestDbContextFactory.CreateSeeded());
     private readonly OutreachDraftService _service;
 
     public OutreachDraftServiceTests()

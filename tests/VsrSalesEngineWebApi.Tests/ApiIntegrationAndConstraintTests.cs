@@ -25,11 +25,11 @@ public class ApiIntegrationAndConstraintTests
 
     public ApiIntegrationAndConstraintTests()
     {
-        _opportunityRepo = new OpportunityRepository();
+        _opportunityRepo = new OpportunityRepository(TestDbContextFactory.CreateSeeded());
         _opportunityService = new OpportunityService(_opportunityRepo);
-        _contactRepo = new ContactRepository();
+        _contactRepo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         _contactService = new ContactService(_contactRepo);
-        _suppressionRepo = new SuppressionRepository();
+        _suppressionRepo = new SuppressionRepository(TestDbContextFactory.CreateSeeded());
         _outreachSender = new OutreachSenderService(_suppressionRepo);
 
         var userRepoMock = new Mock<IUserRepository>();

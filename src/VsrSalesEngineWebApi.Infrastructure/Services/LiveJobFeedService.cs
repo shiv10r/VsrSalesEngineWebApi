@@ -157,10 +157,18 @@ public class LiveJobFeedService : ILiveJobFeedService
                         UpdatedAtUtc = DateTime.UtcNow
                     };
 
-                    _ = Task.Run(async () =>
+                    try
                     {
-                        try { await _contactRepository.AddAsync(contact, CancellationToken.None); } catch { /* ignore dups */ }
-                    });
+                        var existingContact = await _contactRepository.GetByIdAsync(contactId, cancellationToken);
+                        if (existingContact == null)
+                        {
+                            await _contactRepository.AddAsync(contact, cancellationToken);
+                        }
+                    }
+                    catch (Exception contactEx)
+                    {
+                        _logger?.LogWarning(contactEx, "Failed to auto-create contact for live Hacker News posting {ContactId}", contactId);
+                    }
                 }
             }
         }

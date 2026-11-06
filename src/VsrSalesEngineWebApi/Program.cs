@@ -1,11 +1,14 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VsrSalesEngineWebApi.Core.Interfaces;
 using VsrSalesEngineWebApi.Core.Security;
 using VsrSalesEngineWebApi.Core.Services;
+using VsrSalesEngineWebApi.Infrastructure.Data;
 using VsrSalesEngineWebApi.Infrastructure.Repositories;
 using VsrSalesEngineWebApi.Infrastructure.Services;
+using VsrSalesEngineWebApi.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,18 +49,33 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("StandardUserOnly", policy => policy.RequireClaim("is_guest", "false"));
 });
 
+// Persistence: Supabase/PostgreSQL in production, EF InMemory fallback for zero-config local dev.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<VsrDbContext>(options =>
+{
+    if (!string.IsNullOrWhiteSpace(connectionString))
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseInMemoryDatabase("VsrSalesEngineDevFallback");
+    }
+});
+
 // Dependency Injection: Controller -> BLL (Service) -> Repository
-builder.Services.AddSingleton<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<IOpportunityRepository, OpportunityRepository>();
-builder.Services.AddSingleton<ISourceRegistryRepository, SourceRegistryRepository>();
-builder.Services.AddSingleton<ISearchProfileRepository, SearchProfileRepository>();
-builder.Services.AddSingleton<IContactRepository, ContactRepository>();
-builder.Services.AddSingleton<IOutreachTemplateRepository, OutreachTemplateRepository>();
-builder.Services.AddSingleton<ISuppressionRepository, SuppressionRepository>();
-builder.Services.AddSingleton<ICampaignRepository, CampaignRepository>();
-builder.Services.AddSingleton<IAutomationScheduleRepository, AutomationScheduleRepository>();
-builder.Services.AddSingleton<IDistributedLockService, DistributedLockService>();
-builder.Services.AddSingleton<IExecutionRepository, ExecutionRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IOpportunityRepository, OpportunityRepository>();
+builder.Services.AddScoped<ISourceRegistryRepository, SourceRegistryRepository>();
+builder.Services.AddScoped<ISearchProfileRepository, SearchProfileRepository>();
+builder.Services.AddScoped<IContactRepository, ContactRepository>();
+builder.Services.AddScoped<IOutreachTemplateRepository, OutreachTemplateRepository>();
+builder.Services.AddScoped<ISuppressionRepository, SuppressionRepository>();
+builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
+builder.Services.AddScoped<IAutomationScheduleRepository, AutomationScheduleRepository>();
+builder.Services.AddScoped<IDistributedLockService, DistributedLockService>();
+builder.Services.AddScoped<IExecutionRepository, ExecutionRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOpportunityService, OpportunityService>();
 builder.Services.AddScoped<ILiveJobFeedService, LiveJobFeedService>();
@@ -115,7 +133,18 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// Autonomous lead-hunting worker: polls enabled schedules and runs live discovery on a timer.
+// Runs in-process in the web host; the DB-backed distributed lock keeps it safe if multiple instances run.
+builder.Services.AddHostedService<DiscoveryWorkerHostedService>();
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<VsrDbContext>();
+    db.Database.EnsureCreated();
+    await VsrDbSeeder.SeedAsync(db);
+}
 
 app.UseCors("AllowConfiguredOrigins");
 app.UseAuthentication();

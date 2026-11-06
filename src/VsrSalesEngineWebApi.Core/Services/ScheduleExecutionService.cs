@@ -8,13 +8,16 @@ public class ScheduleExecutionService : IScheduleExecutionService
 {
     private readonly IAutomationScheduleRepository _scheduleRepository;
     private readonly IDistributedLockService _lockService;
+    private readonly IDiscoveryService? _discoveryService;
 
     public ScheduleExecutionService(
         IAutomationScheduleRepository scheduleRepository,
-        IDistributedLockService lockService)
+        IDistributedLockService lockService,
+        IDiscoveryService? discoveryService = null)
     {
         _scheduleRepository = scheduleRepository;
         _lockService = lockService;
+        _discoveryService = discoveryService;
     }
 
     public async Task<IReadOnlyList<AutomationScheduleDto>> GetSchedulesAsync()
@@ -133,6 +136,45 @@ public class ScheduleExecutionService : IScheduleExecutionService
 
         try
         {
+            if (trigger == "AutonomousWorker" && IsWithinQuietHours(schedule))
+            {
+                schedule.LastRunStatus = "SkippedQuietHours";
+                schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency);
+                schedule.UpdatedAtUtc = DateTime.UtcNow;
+                await _scheduleRepository.UpdateAsync(schedule);
+
+                return new ScheduleRunExecutionResultDto(
+                    ScheduleId: scheduleId,
+                    Success: true,
+                    Status: "SkippedQuietHours",
+                    Message: $"Schedule '{schedule.Name}' skipped: current time falls within configured quiet hours.",
+                    NextRunAtUtc: schedule.NextRunAtUtc,
+                    LockOwner: workerId
+                );
+            }
+
+            string resultMessage;
+            string resultStatus = "Completed";
+
+            if (_discoveryService != null)
+            {
+                var runResult = await _discoveryService.RunDiscoveryAsync(
+                    new RunDiscoveryRequestDto(
+                        ProfileId: schedule.ProfileId,
+                        TargetKeywords: null,
+                        ExcludedKeywords: null,
+                        Location: null,
+                        SelectedSources: schedule.SelectedSources,
+                        MaxResults: schedule.RunCap),
+                    actor: $"Schedule:{schedule.Name} ({trigger})");
+
+                resultMessage = $"Schedule '{schedule.Name}' executed ({trigger}): {runResult.NewMatchesCount} new lead(s) found, {runResult.DuplicateCount} duplicate(s) skipped across {runResult.SourceMetrics.Count} source(s).";
+            }
+            else
+            {
+                resultMessage = $"Schedule '{schedule.Name}' executed successfully ({trigger}).";
+            }
+
             schedule.LastRunAtUtc = DateTime.UtcNow;
             schedule.LastRunStatus = "Success";
             schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency);
@@ -143,8 +185,23 @@ public class ScheduleExecutionService : IScheduleExecutionService
             return new ScheduleRunExecutionResultDto(
                 ScheduleId: scheduleId,
                 Success: true,
-                Status: "Completed",
-                Message: $"Schedule '{schedule.Name}' executed successfully ({trigger}). Next run scheduled for {schedule.NextRunAtUtc:g} UTC.",
+                Status: resultStatus,
+                Message: $"{resultMessage} Next run scheduled for {schedule.NextRunAtUtc:g} UTC.",
+                NextRunAtUtc: schedule.NextRunAtUtc,
+                LockOwner: workerId
+            );
+        }
+        catch (Exception ex)
+        {
+            schedule.LastRunStatus = "Failed";
+            schedule.UpdatedAtUtc = DateTime.UtcNow;
+            await _scheduleRepository.UpdateAsync(schedule);
+
+            return new ScheduleRunExecutionResultDto(
+                ScheduleId: scheduleId,
+                Success: false,
+                Status: "Failed",
+                Message: $"Schedule '{schedule.Name}' failed during execution: {ex.Message}",
                 NextRunAtUtc: schedule.NextRunAtUtc,
                 LockOwner: workerId
             );
@@ -153,6 +210,21 @@ public class ScheduleExecutionService : IScheduleExecutionService
         {
             await _lockService.ReleaseLockAsync(lockKey, workerId);
         }
+    }
+
+    private static bool IsWithinQuietHours(AutomationSchedule schedule)
+    {
+        if (!TimeSpan.TryParse(schedule.QuietHoursStart, out var start) ||
+            !TimeSpan.TryParse(schedule.QuietHoursEnd, out var end))
+        {
+            return false;
+        }
+
+        var nowTod = DateTime.UtcNow.TimeOfDay;
+
+        return start <= end
+            ? nowTod >= start && nowTod < end
+            : nowTod >= start || nowTod < end;
     }
 
     private static DateTime CalculateNextRun(string frequency)
