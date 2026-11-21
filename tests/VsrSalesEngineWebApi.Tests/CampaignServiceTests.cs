@@ -8,7 +8,7 @@ namespace VsrSalesEngineWebApi.Tests;
 
 public class CampaignServiceTests
 {
-    private readonly CampaignRepository _repo = new();
+    private readonly CampaignRepository _repo = new(TestDbContextFactory.CreateSeeded());
     private readonly CampaignService _service;
 
     public CampaignServiceTests()

@@ -10,7 +10,7 @@ public class ContactServiceTests
     [Fact]
     public async Task CreateContact_ValidEmail_CreatesSuccessfully()
     {
-        var repo = new ContactRepository();
+        var repo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         var service = new ContactService(repo);
 
         var dto = new CreateContactDto(
@@ -40,7 +40,7 @@ public class ContactServiceTests
     [InlineData("user@domain.")]
     public async Task CreateContact_InvalidEmail_ThrowsArgumentException(string invalidEmail)
     {
-        var repo = new ContactRepository();
+        var repo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         var service = new ContactService(repo);
 
         var dto = new CreateContactDto("Invalid Contact", "Test Co", "Lead", invalidEmail, null, null, null, null);
@@ -55,7 +55,7 @@ public class ContactServiceTests
     [InlineData("billing@vendor.net")]
     public async Task CreateContact_RoleAccount_FlagsAndBlocksByPolicy(string roleEmail)
     {
-        var repo = new ContactRepository();
+        var repo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         var service = new ContactService(repo);
 
         var dto = new CreateContactDto("Role Account", "Enterprise Co", "Support Team", roleEmail, null, null, null, null);
@@ -69,7 +69,7 @@ public class ContactServiceTests
     [Fact]
     public async Task CreateContact_DuplicateNormalizedEmail_DeduplicatesDeterministically()
     {
-        var repo = new ContactRepository();
+        var repo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         var service = new ContactService(repo);
 
         var dto1 = new CreateContactDto("Original Name", "Company A", "Dev", "test.user@company.com", null, null, null, null);
@@ -85,7 +85,7 @@ public class ContactServiceTests
     [Fact]
     public async Task QualifyContact_ValidStatus_UpdatesStatusAndAppendsNotes()
     {
-        var repo = new ContactRepository();
+        var repo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         var service = new ContactService(repo);
 
         var contact = await service.CreateContactAsync(new CreateContactDto(
@@ -107,7 +107,7 @@ public class ContactServiceTests
     [Fact]
     public async Task GetPagedContacts_FiltersProperly()
     {
-        var repo = new ContactRepository();
+        var repo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         var service = new ContactService(repo);
 
         var result = await service.GetPagedContactsAsync(new ContactFilterDto(

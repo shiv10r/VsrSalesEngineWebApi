@@ -13,8 +13,8 @@ public class DiscoveryAndProfileServiceTests
     [Fact]
     public async Task GetSourcesAsync_ReturnsBaselineConfiguredSources()
     {
-        var sourceRepo = new SourceRegistryRepository();
-        var profileRepo = new SearchProfileRepository();
+        var sourceRepo = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
+        var profileRepo = new SearchProfileRepository(TestDbContextFactory.CreateSeeded());
         var oppRepoMock = new Mock<IOpportunityRepository>();
 
         var service = new DiscoveryService(sourceRepo, profileRepo, oppRepoMock.Object);
@@ -29,8 +29,8 @@ public class DiscoveryAndProfileServiceTests
     [Fact]
     public async Task UpdateSourceStatusAsync_RejectsInvalidPolicyStatus()
     {
-        var sourceRepo = new SourceRegistryRepository();
-        var profileRepo = new SearchProfileRepository();
+        var sourceRepo = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
+        var profileRepo = new SearchProfileRepository(TestDbContextFactory.CreateSeeded());
         var oppRepoMock = new Mock<IOpportunityRepository>();
 
         var service = new DiscoveryService(sourceRepo, profileRepo, oppRepoMock.Object);
@@ -42,8 +42,8 @@ public class DiscoveryAndProfileServiceTests
     [Fact]
     public async Task CreateProfileAsync_RejectsEmptyNameOrKeywords()
     {
-        var sourceRepo = new SourceRegistryRepository();
-        var profileRepo = new SearchProfileRepository();
+        var sourceRepo = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
+        var profileRepo = new SearchProfileRepository(TestDbContextFactory.CreateSeeded());
         var oppRepoMock = new Mock<IOpportunityRepository>();
 
         var service = new DiscoveryService(sourceRepo, profileRepo, oppRepoMock.Object);
@@ -58,8 +58,8 @@ public class DiscoveryAndProfileServiceTests
     [Fact]
     public async Task CreateAndLifecycle_Profile_WorksCorrectly()
     {
-        var sourceRepo = new SourceRegistryRepository();
-        var profileRepo = new SearchProfileRepository();
+        var sourceRepo = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
+        var profileRepo = new SearchProfileRepository(TestDbContextFactory.CreateSeeded());
         var oppRepoMock = new Mock<IOpportunityRepository>();
 
         var service = new DiscoveryService(sourceRepo, profileRepo, oppRepoMock.Object);
@@ -104,8 +104,8 @@ public class DiscoveryAndProfileServiceTests
     [Fact]
     public async Task RunDiscovery_EnforcesPolicy_RestrictsLinkedInAndDeduplicates()
     {
-        var sourceRepo = new SourceRegistryRepository();
-        var profileRepo = new SearchProfileRepository();
+        var sourceRepo = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
+        var profileRepo = new SearchProfileRepository(TestDbContextFactory.CreateSeeded());
         var oppRepoMock = new Mock<IOpportunityRepository>();
 
         oppRepoMock.Setup(r => r.GetByDeduplicationKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))

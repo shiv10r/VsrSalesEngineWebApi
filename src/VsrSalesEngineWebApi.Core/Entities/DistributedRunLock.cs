@@ -7,4 +7,5 @@ public class DistributedRunLock
     public DateTime AcquiredAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAtUtc { get; set; } = DateTime.UtcNow.AddMinutes(5);
     public bool IsReleased { get; set; } = false;
+    public int Version { get; set; } = 0;
 }
