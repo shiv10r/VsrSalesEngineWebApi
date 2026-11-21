@@ -45,6 +45,6 @@ public class DedupeStep : IRelayStep
         await log.ResultAsync(Agent, $"{state.Leads.Count} new, {state.Duplicates} already stored.");
         await log.HandoffAsync(Agent, state.Leads.Count == 0
             ? "Nothing new to pass on."
-            : $"Handing {state.Leads.Count} new lead(s) to Scorer.");
+            : $"Handing {state.Leads.Count} new lead(s) to {AgentCatalog.NameOf(AgentIds.Scorer)} for scoring.");
     }
 }

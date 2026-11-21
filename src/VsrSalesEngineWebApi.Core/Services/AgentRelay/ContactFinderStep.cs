@@ -69,7 +69,7 @@ public class ContactFinderStep : IRelayStep
             $"{withEmail} of {state.Leads.Count} lead(s) have a public email. {quietNoEmail} lower-scoring lead(s) have none and stay on the list for manual review.");
         await log.HandoffAsync(Agent, state.StrongLeads == 0
             ? "No lead scored high enough for a draft."
-            : $"Handing {state.StrongLeads} strong lead(s) to Drafter.");
+            : $"Handing {state.StrongLeads} strong lead(s) to {AgentCatalog.NameOf(AgentIds.Drafter)} for drafts.");
     }
 
     private async Task<bool> EnsureContactAsync(RelayLead lead, CancellationToken ct)

@@ -294,6 +294,61 @@ public class AgentRelayTests
     }
 
     [Fact]
+    public void Catalog_UsesPersonaNames_AndKeepsIdsAndFunctionLabels()
+    {
+        var expected = new (string Id, string Name, string Label)[]
+        {
+            ("scout", "Aarav", "Scout - "),
+            ("filter", "Priya", "Filter - "),
+            ("dedupe", "Daniel", "Dedupe - "),
+            ("scorer", "Ananya", "Scorer - "),
+            ("contact-finder", "Rohan", "Contact Finder - "),
+            ("drafter", "Sophie", "Drafter - "),
+            ("compliance", "Meera", "Compliance - "),
+            ("reporter", "James", "Reporter - ")
+        };
+
+        Assert.Equal(expected.Select(e => e.Id), AgentCatalog.All.Select(a => a.Id));
+        foreach (var (id, name, label) in expected)
+        {
+            var agent = AgentCatalog.All.Single(a => a.Id == id);
+            Assert.Equal(name, agent.Name);
+            Assert.StartsWith(label, agent.Role);
+            Assert.Equal(name, AgentCatalog.NameOf(id));
+        }
+    }
+
+    [Fact]
+    public async Task Handoffs_NameTheNextAgentByPersona()
+    {
+        _feeds.Postings = new[]
+        {
+            Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work", "Email: hiring@northwind.example")
+        };
+
+        var (_, events) = await RunAsync();
+
+        string Handoff(string from) => events.First(e => e.AgentId == from && e.Kind == EventKinds.Handoff).Message;
+        Assert.Contains("Priya", Handoff(AgentIds.Scout));
+        Assert.Contains("Daniel", Handoff(AgentIds.Filter));
+        Assert.Contains("Ananya", Handoff(AgentIds.Dedupe));
+        Assert.Contains("Rohan", Handoff(AgentIds.Scorer));
+        Assert.Contains("Sophie", Handoff(AgentIds.ContactFinder));
+        Assert.Contains("Meera", Handoff(AgentIds.Drafter));
+        Assert.Contains("James", Handoff(AgentIds.Compliance));
+    }
+
+    [Fact]
+    public async Task Overview_ShowsPersonaNamesWithStableIds()
+    {
+        var overview = await Activity().GetOverviewAsync();
+
+        Assert.Equal("Aarav", overview.Agents.Single(a => a.Id == "scout").Name);
+        Assert.Equal("James", overview.Agents.Single(a => a.Id == "reporter").Name);
+        Assert.StartsWith("Scout - ", overview.Agents.Single(a => a.Id == "scout").Role);
+    }
+
+    [Fact]
     public void ScoringReasons_AlwaysSumToTheScore()
     {
         var keywords = new[] { "asp.net", "react" };

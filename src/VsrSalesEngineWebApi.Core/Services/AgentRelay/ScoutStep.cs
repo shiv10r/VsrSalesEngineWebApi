@@ -37,7 +37,7 @@ public class ScoutStep : IRelayStep
         }
 
         await log.HandoffAsync(Agent,
-            $"Read {state.PostingsRead} posting(s) from {state.SourcesReached} source(s). Handing them to Filter.");
+            $"Read {state.PostingsRead} posting(s) from {state.SourcesReached} source(s). Handing them to {AgentCatalog.NameOf(AgentIds.Filter)}.");
     }
 
     private async Task ReadSourceAsync(

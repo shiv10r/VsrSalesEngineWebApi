@@ -48,6 +48,6 @@ public class ScorerStep : IRelayStep
 
         state.Leads.Sort((a, b) => b.Score.CompareTo(a.Score));
         await log.ResultAsync(Agent, $"Saved {state.NewLeads} new lead(s). {state.StrongLeads} score above {state.Options.DraftThreshold}.");
-        await log.HandoffAsync(Agent, $"Handing {state.Leads.Count} scored lead(s) to Contact Finder.");
+        await log.HandoffAsync(Agent, $"Handing {state.Leads.Count} scored lead(s) to {AgentCatalog.NameOf(AgentIds.ContactFinder)}.");
     }
 }

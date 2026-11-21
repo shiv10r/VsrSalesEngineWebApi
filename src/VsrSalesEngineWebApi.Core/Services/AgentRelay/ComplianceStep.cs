@@ -62,6 +62,6 @@ public class ComplianceStep : IRelayStep
                 lead.ToDto(includeScore: true, includeDraft: true));
         }
 
-        await log.HandoffAsync(Agent, $"{state.DraftsReady} draft(s) cleared. Handing over to Reporter.");
+        await log.HandoffAsync(Agent, $"{state.DraftsReady} draft(s) cleared. Handing over to {AgentCatalog.NameOf(AgentIds.Reporter)}.");
     }
 }

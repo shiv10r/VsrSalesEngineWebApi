@@ -63,6 +63,6 @@ public class DrafterStep : IRelayStep
         }
 
         var drafted = strong.Count(l => l.Draft != null);
-        await log.HandoffAsync(Agent, $"Handing {drafted} draft(s) to Compliance.");
+        await log.HandoffAsync(Agent, $"Handing {drafted} draft(s) to {AgentCatalog.NameOf(AgentIds.Compliance)} for a compliance check.");
     }
 }
