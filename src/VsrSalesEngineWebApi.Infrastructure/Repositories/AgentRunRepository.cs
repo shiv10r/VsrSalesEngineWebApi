@@ -27,8 +27,9 @@ public class AgentRunRepository : IAgentRunRepository
         await _context.SaveChangesAsync();
     }
 
+    // Tracked on purpose: BeginRun and Execute share one scope, and Update must see the same instance.
     public Task<AgentRun?> GetRunAsync(string id) =>
-        _context.AgentRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        _context.AgentRuns.FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task<IReadOnlyList<AgentRun>> GetRunsAsync(int take) =>
         await _context.AgentRuns.AsNoTracking()
