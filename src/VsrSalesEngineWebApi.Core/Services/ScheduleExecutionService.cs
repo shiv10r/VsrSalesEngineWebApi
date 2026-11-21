@@ -1,6 +1,7 @@
 using VsrSalesEngineWebApi.Core.DTOs;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using static VsrSalesEngineWebApi.Core.Services.ScheduleTiming;
 
 namespace VsrSalesEngineWebApi.Core.Services;
 
@@ -8,13 +9,19 @@ public class ScheduleExecutionService : IScheduleExecutionService
 {
     private readonly IAutomationScheduleRepository _scheduleRepository;
     private readonly IDistributedLockService _lockService;
+    private readonly IDiscoveryService? _discoveryService;
+    private readonly IAgentRelay? _relay;
 
     public ScheduleExecutionService(
         IAutomationScheduleRepository scheduleRepository,
-        IDistributedLockService lockService)
+        IDistributedLockService lockService,
+        IDiscoveryService? discoveryService = null,
+        IAgentRelay? relay = null)
     {
         _scheduleRepository = scheduleRepository;
         _lockService = lockService;
+        _discoveryService = discoveryService;
+        _relay = relay;
     }
 
     public async Task<IReadOnlyList<AutomationScheduleDto>> GetSchedulesAsync()
@@ -45,7 +52,8 @@ public class ScheduleExecutionService : IScheduleExecutionService
             RunCap = dto.RunCap.GetValueOrDefault(50),
             QuietHoursStart = dto.QuietHoursStart ?? "22:00",
             QuietHoursEnd = dto.QuietHoursEnd ?? "07:00",
-            NextRunAtUtc = CalculateNextRun(dto.Frequency ?? "Daily"),
+            IntervalHours = dto.IntervalHours is > 0 ? dto.IntervalHours.Value : 24,
+            NextRunAtUtc = CalculateNextRun(dto.Frequency ?? "Daily", dto.IntervalHours ?? 0),
             LastRunStatus = "Ready",
             CreatedBy = user,
             CreatedAtUtc = DateTime.UtcNow,
@@ -72,7 +80,8 @@ public class ScheduleExecutionService : IScheduleExecutionService
         if (!string.IsNullOrWhiteSpace(dto.QuietHoursStart)) existing.QuietHoursStart = dto.QuietHoursStart.Trim();
         if (!string.IsNullOrWhiteSpace(dto.QuietHoursEnd)) existing.QuietHoursEnd = dto.QuietHoursEnd.Trim();
         if (dto.IsEnabled.HasValue) existing.IsEnabled = dto.IsEnabled.Value;
-        existing.NextRunAtUtc = CalculateNextRun(existing.Frequency);
+        if (dto.IntervalHours is > 0) existing.IntervalHours = dto.IntervalHours.Value;
+        existing.NextRunAtUtc = CalculateNextRun(existing.Frequency, existing.IntervalHours);
         existing.UpdatedAtUtc = DateTime.UtcNow;
 
         var updated = await _scheduleRepository.UpdateAsync(existing);
@@ -88,7 +97,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
         existing.UpdatedAtUtc = DateTime.UtcNow;
         if (isEnabled)
         {
-            existing.NextRunAtUtc = CalculateNextRun(existing.Frequency);
+            existing.NextRunAtUtc = CalculateNextRun(existing.Frequency, existing.IntervalHours);
         }
 
         var updated = await _scheduleRepository.UpdateAsync(existing);
@@ -133,9 +142,73 @@ public class ScheduleExecutionService : IScheduleExecutionService
 
         try
         {
+            if (trigger is "AutonomousWorker" or "ExternalTimer" && IsWithinQuietHours(schedule))
+            {
+                schedule.LastRunStatus = "SkippedQuietHours";
+                schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency, schedule.IntervalHours);
+                schedule.UpdatedAtUtc = DateTime.UtcNow;
+                await _scheduleRepository.UpdateAsync(schedule);
+
+                if (_relay != null)
+                {
+                    await _relay.RecordSkippedAsync(BuildRelayRequest(schedule, trigger),
+                        $"{schedule.Name} is off duty (active {schedule.QuietHoursEnd}-{schedule.QuietHoursStart} {schedule.Timezone}). Skipping this run; next check {schedule.NextRunAtUtc:HH:mm} UTC.");
+                }
+
+                return new ScheduleRunExecutionResultDto(
+                    ScheduleId: scheduleId,
+                    Success: true,
+                    Status: "SkippedQuietHours",
+                    Message: $"Schedule '{schedule.Name}' skipped: current time falls within configured quiet hours.",
+                    NextRunAtUtc: schedule.NextRunAtUtc,
+                    LockOwner: workerId
+                );
+            }
+
+            string resultMessage;
+            string resultStatus = "Completed";
+            var runSucceeded = true;
+
+            if (_relay != null)
+            {
+                var run = await _relay.RunAsync(BuildRelayRequest(schedule, trigger));
+                if (run == null)
+                {
+                    // Another agent run is in progress: leave NextRunAtUtc alone so the next tick retries.
+                    return new ScheduleRunExecutionResultDto(
+                        ScheduleId: scheduleId,
+                        Success: true,
+                        Status: "RelayBusy",
+                        Message: $"Schedule '{schedule.Name}' waits: another agent run is in progress.",
+                        NextRunAtUtc: schedule.NextRunAtUtc,
+                        LockOwner: workerId);
+                }
+
+                runSucceeded = run.Status == "completed";
+                resultMessage = run.Summary ?? $"Schedule '{schedule.Name}' executed ({trigger}).";
+            }
+            else if (_discoveryService != null)
+            {
+                var runResult = await _discoveryService.RunDiscoveryAsync(
+                    new RunDiscoveryRequestDto(
+                        ProfileId: schedule.ProfileId,
+                        TargetKeywords: null,
+                        ExcludedKeywords: null,
+                        Location: null,
+                        SelectedSources: schedule.SelectedSources,
+                        MaxResults: schedule.RunCap),
+                    actor: $"Schedule:{schedule.Name} ({trigger})");
+
+                resultMessage = $"Schedule '{schedule.Name}' executed ({trigger}): {runResult.NewMatchesCount} new lead(s) found, {runResult.DuplicateCount} duplicate(s) skipped across {runResult.SourceMetrics.Count} source(s).";
+            }
+            else
+            {
+                resultMessage = $"Schedule '{schedule.Name}' executed successfully ({trigger}).";
+            }
+
             schedule.LastRunAtUtc = DateTime.UtcNow;
-            schedule.LastRunStatus = "Success";
-            schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency);
+            schedule.LastRunStatus = runSucceeded ? "Success" : "Failed";
+            schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency, schedule.IntervalHours);
             schedule.UpdatedAtUtc = DateTime.UtcNow;
 
             await _scheduleRepository.UpdateAsync(schedule);
@@ -143,8 +216,23 @@ public class ScheduleExecutionService : IScheduleExecutionService
             return new ScheduleRunExecutionResultDto(
                 ScheduleId: scheduleId,
                 Success: true,
-                Status: "Completed",
-                Message: $"Schedule '{schedule.Name}' executed successfully ({trigger}). Next run scheduled for {schedule.NextRunAtUtc:g} UTC.",
+                Status: resultStatus,
+                Message: $"{resultMessage} Next run scheduled for {schedule.NextRunAtUtc:g} UTC.",
+                NextRunAtUtc: schedule.NextRunAtUtc,
+                LockOwner: workerId
+            );
+        }
+        catch (Exception ex)
+        {
+            schedule.LastRunStatus = "Failed";
+            schedule.UpdatedAtUtc = DateTime.UtcNow;
+            await _scheduleRepository.UpdateAsync(schedule);
+
+            return new ScheduleRunExecutionResultDto(
+                ScheduleId: scheduleId,
+                Success: false,
+                Status: "Failed",
+                Message: $"Schedule '{schedule.Name}' failed during execution: {ex.Message}",
                 NextRunAtUtc: schedule.NextRunAtUtc,
                 LockOwner: workerId
             );
@@ -155,15 +243,8 @@ public class ScheduleExecutionService : IScheduleExecutionService
         }
     }
 
-    private static DateTime CalculateNextRun(string frequency)
-    {
-        var now = DateTime.UtcNow;
-        return frequency.ToUpperInvariant() switch
-        {
-            "WEEKLY" => now.AddDays(7),
-            _ => now.AddHours(24) // Daily
-        };
-    }
+    private static RelayRequest BuildRelayRequest(AutomationSchedule schedule, string trigger) =>
+        new(schedule.Id, schedule.Name, schedule.ProfileId, schedule.SelectedSources, schedule.RunCap, trigger);
 
     private static AutomationScheduleDto ToDto(AutomationSchedule s) => new(
         s.Id,
@@ -183,6 +264,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
         s.LastRunStatus,
         s.CreatedBy,
         s.CreatedAtUtc,
-        s.UpdatedAtUtc
+        s.UpdatedAtUtc,
+        s.IntervalHours
     );
 }

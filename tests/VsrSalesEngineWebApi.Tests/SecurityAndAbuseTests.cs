@@ -16,9 +16,9 @@ public class SecurityAndAbuseTests
 
     public SecurityAndAbuseTests()
     {
-        _suppressionRepo = new SuppressionRepository();
+        _suppressionRepo = new SuppressionRepository(TestDbContextFactory.CreateSeeded());
         _outreachSender = new OutreachSenderService(_suppressionRepo);
-        _draftService = new OutreachDraftService(new OutreachTemplateRepository());
+        _draftService = new OutreachDraftService(new OutreachTemplateRepository(TestDbContextFactory.CreateSeeded()));
     }
 
     [Theory]

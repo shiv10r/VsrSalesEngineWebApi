@@ -8,7 +8,7 @@ namespace VsrSalesEngineWebApi.Tests;
 [Collection("OutreachSenderStateCollection")]
 public class OutreachSenderTests
 {
-    private readonly SuppressionRepository _suppressionRepo = new();
+    private readonly SuppressionRepository _suppressionRepo = new(TestDbContextFactory.CreateSeeded());
     private readonly OutreachSenderService _senderService;
 
     public OutreachSenderTests()

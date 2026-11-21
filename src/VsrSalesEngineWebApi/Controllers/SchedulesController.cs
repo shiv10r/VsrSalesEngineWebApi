@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ public class SchedulesController : ControllerBase
         return Ok(schedule);
     }
 
+    [DisallowGuest]
     [HttpPost]
     [ProducesResponseType(typeof(AutomationScheduleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -51,6 +53,7 @@ public class SchedulesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    [DisallowGuest]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(AutomationScheduleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -67,6 +70,7 @@ public class SchedulesController : ControllerBase
         return Ok(updated);
     }
 
+    [DisallowGuest]
     [HttpPatch("{id}/toggle")]
     [ProducesResponseType(typeof(AutomationScheduleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -77,6 +81,7 @@ public class SchedulesController : ControllerBase
         return Ok(updated);
     }
 
+    [DisallowGuest]
     [HttpPost("{id}/run-now")]
     [ProducesResponseType(typeof(ScheduleRunExecutionResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -91,6 +96,7 @@ public class SchedulesController : ControllerBase
         return Ok(result);
     }
 
+    [DisallowGuest]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

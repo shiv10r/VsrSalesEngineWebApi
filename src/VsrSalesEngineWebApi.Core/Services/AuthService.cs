@@ -41,6 +41,7 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByEmailAsync(request.Email.Trim().ToLowerInvariant(), cancellationToken);
         if (user == null)
         {
+            VerifyPassword(request.Password, DummyHash.Value);
             return new AuthResponseDto(false, null, "Invalid email or credentials.", null);
         }
 
@@ -154,15 +155,10 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static bool VerifyPassword(string inputPassword, string storedHash)
-    {
-        // For development/starter, allow direct test seed match or SHA256 comparison
-        if (storedHash == inputPassword) return true;
+    // Only salted PBKDF2 hashes are accepted. Plain text and unsalted digests in the database never match.
+    private static bool VerifyPassword(string inputPassword, string storedHash) =>
+        PasswordHasher.Verify(inputPassword, storedHash);
 
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(inputPassword));
-        var hex = Convert.ToHexString(bytes).ToLowerInvariant();
-        return string.Equals(hex, storedHash, StringComparison.OrdinalIgnoreCase);
-    }
+    // Used when the email is unknown so a missing account costs the same time as a wrong password.
+    private static readonly Lazy<string> DummyHash = new(() => PasswordHasher.Hash("not-a-real-password"));
 }
-

@@ -1,44 +1,35 @@
 # VSR Sales Engine — Web API
 
-Backend API and background worker for VSR Sales Engine built with .NET 10 LTS and ASP.NET Core.
+Backend for the VSR Sales Engine lead-hunting tool: .NET 10 LTS, ASP.NET Core, EF Core, PostgreSQL.
+A team of eight agents reads live job boards every two hours, filters, scores and drafts; a person
+approves before anything is sent. Frontend: [VsrSalesEngineWebapp](https://github.com/shiv10r/VsrSalesEngineWebapp).
 
-## Architecture
-
-This service strictly implements the required layered flow:
-```text
-Controller  (thin HTTP routing, auth policies, status codes)
-   ↓
-BLL / Service Layer  (business logic, validation, orchestrations)
-   ↓
-Repository Layer  (data queries and persistence)
-   ↓
-Database  (Supabase PostgreSQL / local PostgreSQL)
-```
-
-- Controllers are thin HTTP adapters and never access repositories or DbContext directly.
-- Business Logic Layer (BLL) owns validation and security gates.
-- Repository layer owns data access.
-- DTOs are decoupled from domain entities.
-
-## Authentication & Guest Mode
-
-- **JWT Authentication** is the default production authentication method.
-- **Development Guest Mode**:
-  - Gated behind `ASPNETCORE_ENVIRONMENT=Development` AND `Features:AllowDevelopmentGuest=true`.
-  - Fail-closed in Production environments even if client bypass tokens are forged.
-  - Restricted permissions: Guest mode only provides seeded sample data and cannot trigger real outreach or provider integration.
-
-## Solution Projects
-
-- `src/VsrSalesEngineWebApi`: Web API host, Controllers, Middleware, Auth Policies
-- `src/VsrSalesEngineWebApi.Core`: Business logic (BLL), interfaces, DTOs, domain models
-- `src/VsrSalesEngineWebApi.Infrastructure`: Data access, EF Core context, repository implementations
-- `tests/VsrSalesEngineWebApi.Tests`: Unit and integration test suite
-
-## Running Locally
+## Run locally
 
 ```bash
 dotnet build
 dotnet test
 dotnet run --project src/VsrSalesEngineWebApi
 ```
+
+With no connection string the app uses an in-memory database (data resets on restart). In Development it
+seeds two demo users: `sales@vsrsalesengine.com` / `Sales123!` and `admin@vsrsalesengine.com` / `Admin123!`.
+They exist only in Development. Sign in, open Agents, click "Run agents now".
+
+## Layout
+
+- `src/VsrSalesEngineWebApi` — host, controllers, workers, security
+- `src/VsrSalesEngineWebApi.Core` — services, agent relay, interfaces, DTOs, entities
+- `src/VsrSalesEngineWebApi.Infrastructure` — EF Core, repositories, live feed clients
+- `tests/VsrSalesEngineWebApi.Tests` — unit and integration tests
+
+## Docs
+
+| File | What |
+|---|---|
+| [TASKS.md](TASKS.md) | The one task tracker, with the daily log |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System, agent relay, endpoints, security |
+| [docs/ENGINEERING_RULES.md](docs/ENGINEERING_RULES.md) | Layering, guest mode, sources, branches, definition of done |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Render, Supabase, timer, environment variables, go-live checklist |
+| [docs/runbook/operational-drill-and-smoke-test.md](docs/runbook/operational-drill-and-smoke-test.md) | Operations drill |
+| [agents/README.md](agents/README.md) | Rules for the development agents in `.claude/agents` |

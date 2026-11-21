@@ -13,8 +13,8 @@ public class SourceAdapterContractFixtureTests
 
     public SourceAdapterContractFixtureTests()
     {
-        _sourceRepo = new SourceRegistryRepository();
-        _reliabilityService = new ReliabilityService(new ExecutionRepository(), new AutomationScheduleRepository());
+        _sourceRepo = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
+        _reliabilityService = new ReliabilityService(new ExecutionRepository(TestDbContextFactory.CreateSeeded()), new AutomationScheduleRepository(TestDbContextFactory.CreateSeeded()));
     }
 
     [Fact]

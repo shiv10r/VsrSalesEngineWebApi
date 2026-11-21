@@ -1,0 +1,33 @@
+name: Run lead agents
+
+# Wakes the Render service (free tier sleeps when idle) and runs every agent that is due.
+# Needs two repository secrets:
+#   API_BASE_URL   e.g. https://vsr-sales-engine-webapi.onrender.com   (no trailing slash)
+#   AGENT_RUN_KEY  same value as the Agents__RunKey environment variable on Render
+on:
+  schedule:
+    - cron: "0 */2 * * *" # every 2 hours (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-due-agents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Call run-due endpoint
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          AGENT_RUN_KEY: ${{ secrets.AGENT_RUN_KEY }}
+        run: |
+          if [ -z "$API_BASE_URL" ] || [ -z "$AGENT_RUN_KEY" ]; then
+            echo "API_BASE_URL and AGENT_RUN_KEY secrets must be set"; exit 1
+          fi
+          # Cold start on the free plan can take about a minute, so allow retries.
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-delay 30 --retry-all-errors \
+            --max-time 600 \
+            -X POST "$API_BASE_URL/api/agents/run-due" \
+            -H "X-Agent-Key: $AGENT_RUN_KEY"

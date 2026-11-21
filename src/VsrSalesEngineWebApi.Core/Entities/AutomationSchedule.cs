@@ -12,6 +12,7 @@ public class AutomationSchedule
     public string ProfileId { get; set; } = "DEFAULT_PROFILE";
     public List<string> SelectedSources { get; set; } = new();
     public int RunCap { get; set; } = 50;
+    public int IntervalHours { get; set; } = 24; // Hours between runs; shift agents use 2
     public string QuietHoursStart { get; set; } = "22:00";
     public string QuietHoursEnd { get; set; } = "07:00";
     public DateTime? LastRunAtUtc { get; set; }

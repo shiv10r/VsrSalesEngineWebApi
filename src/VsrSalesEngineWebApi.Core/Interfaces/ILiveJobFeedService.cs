@@ -10,3 +10,4 @@ public interface ILiveJobFeedService
     Task<IReadOnlyList<Opportunity>> FetchJobicyContractJobsAsync(string? keywords = null, int maxResults = 15, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Opportunity>> FetchAllLiveContractJobsAsync(string? keywords = null, IEnumerable<string>? sources = null, int maxResults = 30, CancellationToken cancellationToken = default);
 }
+

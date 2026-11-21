@@ -1,18 +1,23 @@
 using VsrSalesEngineWebApi.Core.DTOs;
 using VsrSalesEngineWebApi.Core.Services;
+using VsrSalesEngineWebApi.Infrastructure.Data;
 using VsrSalesEngineWebApi.Infrastructure.Repositories;
+using VsrSalesEngineWebApi.Infrastructure.Services;
 using Xunit;
 
 namespace VsrSalesEngineWebApi.Tests;
 
 public class ScheduleAndLockServiceTests
 {
-    private readonly AutomationScheduleRepository _scheduleRepo = new();
-    private readonly DistributedLockService _lockService = new();
+    private readonly VsrDbContext _context = TestDbContextFactory.CreateSeeded();
+    private readonly AutomationScheduleRepository _scheduleRepo;
+    private readonly DistributedLockService _lockService;
     private readonly ScheduleExecutionService _service;
 
     public ScheduleAndLockServiceTests()
     {
+        _scheduleRepo = new AutomationScheduleRepository(_context);
+        _lockService = new DistributedLockService(_context);
         _service = new ScheduleExecutionService(_scheduleRepo, _lockService);
     }
 
@@ -22,7 +27,7 @@ public class ScheduleAndLockServiceTests
         var schedules = await _service.GetSchedulesAsync();
 
         Assert.NotEmpty(schedules);
-        Assert.Contains(schedules, s => s.Frequency == "Daily");
+        Assert.Contains(schedules, s => s.Frequency == "Interval" && s.IntervalHours == 2);
         Assert.Contains(schedules, s => s.Frequency == "Weekly");
     }
 

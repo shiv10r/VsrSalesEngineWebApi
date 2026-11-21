@@ -9,7 +9,7 @@ public class LiveJobFeedServiceTests
     [Fact]
     public async Task FetchAllLiveContractJobsAsync_ReturnsLiveJobsAcrossFeeds()
     {
-        var contactRepo = new ContactRepository();
+        var contactRepo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         var service = new LiveJobFeedService(contactRepository: contactRepo);
 
         // Fetch up to 10 live contract jobs across all feeds
@@ -63,3 +63,4 @@ public class LiveJobFeedServiceTests
         });
     }
 }
+

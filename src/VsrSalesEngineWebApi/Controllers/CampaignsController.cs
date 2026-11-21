@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ public class CampaignsController : ControllerBase
         return Ok(campaign);
     }
 
+    [DisallowGuest]
     [HttpPost]
     [ProducesResponseType(typeof(CampaignDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -51,6 +53,7 @@ public class CampaignsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    [DisallowGuest]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(CampaignDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -67,6 +70,7 @@ public class CampaignsController : ControllerBase
         return Ok(updated);
     }
 
+    [DisallowGuest]
     [HttpPatch("{id}/status")]
     [ProducesResponseType(typeof(CampaignDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -90,6 +94,7 @@ public class CampaignsController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpPatch("{id}/mode")]
     [ProducesResponseType(typeof(CampaignDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -113,6 +118,7 @@ public class CampaignsController : ControllerBase
         return Ok(result);
     }
 
+    [DisallowGuest]
     [HttpPost("{id}/sequence-check")]
     [ProducesResponseType(typeof(ContactSequenceCheckResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> CheckSequenceStep(string id, [FromBody] ContactSequenceCheckRequest request)
@@ -121,6 +127,7 @@ public class CampaignsController : ControllerBase
         return Ok(result);
     }
 
+    [DisallowGuest]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

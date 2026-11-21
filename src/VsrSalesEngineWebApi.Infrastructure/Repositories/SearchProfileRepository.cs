@@ -1,92 +1,59 @@
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using VsrSalesEngineWebApi.Infrastructure.Data;
 
 namespace VsrSalesEngineWebApi.Infrastructure.Repositories;
 
 public class SearchProfileRepository : ISearchProfileRepository
 {
-    private static readonly ConcurrentDictionary<string, SearchProfile> Profiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly VsrDbContext _context;
 
-    static SearchProfileRepository()
+    public SearchProfileRepository(VsrDbContext context)
     {
-        var seed = new List<SearchProfile>
-        {
-            new()
-            {
-                Id = "PRF-001",
-                Name = ".NET & Cloud Modernization Leads",
-                TargetKeywords = ".NET Core, C#, Azure, Microservices, API Modernization",
-                ExcludedKeywords = "internship, unpaid, wordpress",
-                Location = "India · Remote",
-                OpportunityType = "All relevant types",
-                PublishedWithinDays = 7,
-                SelectedSources = new List<string> { "Company careers", "Public job board", "Approved feed" },
-                MaxResults = 50,
-                IsActive = true,
-                CreatedBy = "System",
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-5),
-                UpdatedAtUtc = DateTime.UtcNow.AddDays(-1)
-            },
-            new()
-            {
-                Id = "PRF-002",
-                Name = "React & Full-Stack Frontend Contracts",
-                TargetKeywords = "React, TypeScript, Next.js, Frontend Architecture",
-                ExcludedKeywords = "junior, student",
-                Location = "Remote · Global",
-                OpportunityType = "Individual developer",
-                PublishedWithinDays = 14,
-                SelectedSources = new List<string> { "Company careers", "Public job board" },
-                MaxResults = 40,
-                IsActive = true,
-                CreatedBy = "System",
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-3),
-                UpdatedAtUtc = DateTime.UtcNow.AddHours(-12)
-            }
-        };
-
-        foreach (var p in seed)
-        {
-            Profiles[p.Id] = p;
-        }
+        _context = context;
     }
 
-    public Task<IReadOnlyList<SearchProfile>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SearchProfile>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<SearchProfile> list = Profiles.Values.OrderByDescending(p => p.UpdatedAtUtc).ToList();
-        return Task.FromResult(list);
+        return await _context.SearchProfiles.AsNoTracking().OrderByDescending(p => p.UpdatedAtUtc).ToListAsync(cancellationToken);
     }
 
-    public Task<SearchProfile?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<SearchProfile?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        Profiles.TryGetValue(id, out var profile);
-        return Task.FromResult(profile);
+        return await _context.SearchProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
-    public Task<SearchProfile> CreateAsync(SearchProfile profile, CancellationToken cancellationToken = default)
+    public async Task<SearchProfile> CreateAsync(SearchProfile profile, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(profile.Id))
         {
-            profile.Id = $"PRF-{1000 + Profiles.Count + 1}";
+            var count = await _context.SearchProfiles.CountAsync(cancellationToken);
+            profile.Id = $"PRF-{1000 + count + 1}";
         }
-        Profiles[profile.Id] = profile;
-        return Task.FromResult(profile);
+        _context.SearchProfiles.Add(profile);
+        await _context.SaveChangesAsync(cancellationToken);
+        return profile;
     }
 
-    public Task<SearchProfile?> UpdateAsync(SearchProfile profile, CancellationToken cancellationToken = default)
+    public async Task<SearchProfile?> UpdateAsync(SearchProfile profile, CancellationToken cancellationToken = default)
     {
-        if (Profiles.ContainsKey(profile.Id))
-        {
-            Profiles[profile.Id] = profile;
-            return Task.FromResult<SearchProfile?>(profile);
-        }
-        return Task.FromResult<SearchProfile?>(null);
+        var existing = await _context.SearchProfiles.FirstOrDefaultAsync(p => p.Id == profile.Id, cancellationToken);
+        if (existing == null) return null;
+
+        _context.Entry(existing).CurrentValues.SetValues(profile);
+        existing.SelectedSources = profile.SelectedSources;
+        await _context.SaveChangesAsync(cancellationToken);
+        return existing;
     }
 
-    public Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        var removed = Profiles.TryRemove(id, out _);
-        return Task.FromResult(removed);
+        var existing = await _context.SearchProfiles.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (existing == null) return false;
+
+        _context.SearchProfiles.Remove(existing);
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

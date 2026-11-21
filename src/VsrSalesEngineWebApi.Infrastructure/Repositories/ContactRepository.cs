@@ -1,48 +1,24 @@
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using VsrSalesEngineWebApi.Core.DTOs;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using VsrSalesEngineWebApi.Infrastructure.Data;
 
 namespace VsrSalesEngineWebApi.Infrastructure.Repositories;
 
 public class ContactRepository : IContactRepository
 {
-    private static readonly ConcurrentDictionary<string, Contact> Contacts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly VsrDbContext _context;
 
-    static ContactRepository()
+    public ContactRepository(VsrDbContext context)
     {
-        var seed = new List<Contact>
-        {
-            new()
-            {
-                Id = "CNT-1001",
-                Name = "Maya Patel",
-                Company = "Northstar Digital",
-                Role = "Engineering Manager",
-                Email = "maya.patel@northstardigital.example",
-                NormalizedEmail = "maya.patel@northstardigital.example",
-                Source = "Company careers",
-                SourceUrl = "https://example.com/careers/northstar",
-                ChannelBasis = "ExplicitBusinessContact",
-                Status = "Verified",
-                QualificationStatus = "Verified",
-                IsRoleAccount = false,
-                Notes = "Direct engineering contact listed on engineering blog and team directory.",
-                CreatedBy = "System",
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
-                UpdatedAtUtc = DateTime.UtcNow.AddDays(-2)
-            }
-        };
-
-        foreach (var c in seed)
-        {
-            Contacts[c.Id] = c;
-        }
+        _context = context;
     }
 
-    public Task<PagedResultDto<Contact>> GetPagedAsync(ContactFilterDto filter, CancellationToken cancellationToken = default)
+    public async Task<PagedResultDto<Contact>> GetPagedAsync(ContactFilterDto filter, CancellationToken cancellationToken = default)
     {
-        var query = Contacts.Values.AsEnumerable();
+        var all = await _context.Contacts.AsNoTracking().ToListAsync(cancellationToken);
+        var query = all.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(filter.SearchQuery))
         {
@@ -80,51 +56,54 @@ public class ContactRepository : IContactRepository
             .Take(pageSize)
             .ToList();
 
-        return Task.FromResult(new PagedResultDto<Contact>(items, totalCount, page, pageSize, totalPages));
+        return new PagedResultDto<Contact>(items, totalCount, page, pageSize, totalPages);
     }
 
-    public Task<IReadOnlyList<Contact>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Contact>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<Contact> list = Contacts.Values.OrderByDescending(c => c.UpdatedAtUtc).ToList();
-        return Task.FromResult(list);
+        return await _context.Contacts.AsNoTracking().OrderByDescending(c => c.UpdatedAtUtc).ToListAsync(cancellationToken);
     }
 
-    public Task<Contact?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<Contact?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        Contacts.TryGetValue(id, out var contact);
-        return Task.FromResult(contact);
+        return await _context.Contacts.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
-    public Task<Contact?> GetByNormalizedEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
+    public async Task<Contact?> GetByNormalizedEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
     {
-        var contact = Contacts.Values.FirstOrDefault(c =>
-            string.Equals(c.NormalizedEmail, normalizedEmail, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(contact);
+        var all = await _context.Contacts.AsNoTracking().ToListAsync(cancellationToken);
+        return all.FirstOrDefault(c => string.Equals(c.NormalizedEmail, normalizedEmail, StringComparison.OrdinalIgnoreCase));
     }
 
-    public Task<Contact> AddAsync(Contact contact, CancellationToken cancellationToken = default)
+    public async Task<Contact> AddAsync(Contact contact, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(contact.Id))
         {
-            contact.Id = $"CNT-{1000 + Contacts.Count + 1}";
+            var count = await _context.Contacts.CountAsync(cancellationToken);
+            contact.Id = $"CNT-{1000 + count + 1}";
         }
-        Contacts[contact.Id] = contact;
-        return Task.FromResult(contact);
+        _context.Contacts.Add(contact);
+        await _context.SaveChangesAsync(cancellationToken);
+        return contact;
     }
 
-    public Task<Contact?> UpdateAsync(Contact contact, CancellationToken cancellationToken = default)
+    public async Task<Contact?> UpdateAsync(Contact contact, CancellationToken cancellationToken = default)
     {
-        if (Contacts.ContainsKey(contact.Id))
-        {
-            Contacts[contact.Id] = contact;
-            return Task.FromResult<Contact?>(contact);
-        }
-        return Task.FromResult<Contact?>(null);
+        var existing = await _context.Contacts.FirstOrDefaultAsync(c => c.Id == contact.Id, cancellationToken);
+        if (existing == null) return null;
+
+        _context.Entry(existing).CurrentValues.SetValues(contact);
+        await _context.SaveChangesAsync(cancellationToken);
+        return existing;
     }
 
-    public Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        var removed = Contacts.TryRemove(id, out _);
-        return Task.FromResult(removed);
+        var existing = await _context.Contacts.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (existing == null) return false;
+
+        _context.Contacts.Remove(existing);
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }
