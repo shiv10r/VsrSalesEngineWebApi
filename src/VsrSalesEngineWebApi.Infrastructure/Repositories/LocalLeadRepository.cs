@@ -70,9 +70,13 @@ public class LocalLeadRepository : ILocalLeadRepository
 
     public async Task<LocalLead> UpdateAsync(LocalLead lead, CancellationToken cancellationToken = default)
     {
-        _context.LocalLeads.Update(lead);
+        // Copy onto the tracked row so this also works when the same context already tracks the lead.
+        var tracked = await _context.LocalLeads.FirstOrDefaultAsync(l => l.Id == lead.Id, cancellationToken)
+            ?? throw new InvalidOperationException($"Local lead '{lead.Id}' no longer exists.");
+
+        _context.Entry(tracked).CurrentValues.SetValues(lead);
         await _context.SaveChangesAsync(cancellationToken);
-        return lead;
+        return tracked;
     }
 
     public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
