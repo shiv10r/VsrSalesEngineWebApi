@@ -24,6 +24,7 @@ public class VsrDbContext : DbContext
     public DbSet<AgentRun> AgentRuns => Set<AgentRun>();
     public DbSet<AgentEvent> AgentEvents => Set<AgentEvent>();
     public DbSet<AgentSettings> AgentSettings => Set<AgentSettings>();
+    public DbSet<LocalLead> LocalLeads => Set<LocalLead>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +51,12 @@ public class VsrDbContext : DbContext
         modelBuilder.Entity<Contact>(e => e.HasKey(c => c.Id));
 
         modelBuilder.Entity<AgentRun>(e => e.HasKey(r => r.Id));
+        modelBuilder.Entity<LocalLead>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.HasIndex(l => l.District);
+            e.HasIndex(l => l.NormalizedPhone);
+        });
         modelBuilder.Entity<AgentSettings>(e =>
         {
             e.HasKey(s => s.Id);
