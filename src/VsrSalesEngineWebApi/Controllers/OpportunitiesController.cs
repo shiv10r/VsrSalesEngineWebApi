@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -45,6 +46,7 @@ public class OpportunitiesController : ControllerBase
         return Ok(opp);
     }
 
+    [DisallowGuest]
     [HttpPost]
     [ProducesResponseType(typeof(OpportunityDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -62,6 +64,7 @@ public class OpportunitiesController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(OpportunityDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -73,6 +76,7 @@ public class OpportunitiesController : ControllerBase
         return Ok(updated);
     }
 
+    [DisallowGuest]
     [HttpPatch("{id}/status")]
     [ProducesResponseType(typeof(OpportunityDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -92,6 +96,7 @@ public class OpportunitiesController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

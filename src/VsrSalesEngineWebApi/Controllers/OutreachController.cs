@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +39,7 @@ public class OutreachController : ControllerBase
         return Ok(template);
     }
 
+    [DisallowGuest]
     [HttpPost("templates")]
     [ProducesResponseType(typeof(OutreachTemplateDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -53,6 +55,7 @@ public class OutreachController : ControllerBase
         return CreatedAtAction(nameof(GetTemplateById), new { id = created.Id }, created);
     }
 
+    [DisallowGuest]
     [HttpPut("templates/{id}")]
     [ProducesResponseType(typeof(OutreachTemplateDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -69,6 +72,7 @@ public class OutreachController : ControllerBase
         return Ok(updated);
     }
 
+    [DisallowGuest]
     [HttpDelete("templates/{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -107,6 +111,7 @@ public class OutreachController : ControllerBase
         return Ok(result);
     }
 
+    [DisallowGuest]
     [HttpPost("send")]
     [ProducesResponseType(typeof(OutreachSendResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -137,6 +142,7 @@ public class OutreachController : ControllerBase
         return Ok(suppressions);
     }
 
+    [DisallowGuest]
     [HttpPost("suppressions")]
     [ProducesResponseType(typeof(SuppressionDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -152,6 +158,7 @@ public class OutreachController : ControllerBase
         return CreatedAtAction(nameof(GetSuppressions), new { query = created.Target }, created);
     }
 
+    [DisallowGuest]
     [HttpDelete("suppressions/{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

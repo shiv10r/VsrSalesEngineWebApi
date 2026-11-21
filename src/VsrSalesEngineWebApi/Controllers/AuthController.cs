@@ -1,13 +1,16 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using VsrSalesEngineWebApi.Core.DTOs;
+using VsrSalesEngineWebApi.Security;
 using VsrSalesEngineWebApi.Core.Interfaces;
 
 namespace VsrSalesEngineWebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting(SecurityExtensions.AuthRateLimitPolicy)]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
