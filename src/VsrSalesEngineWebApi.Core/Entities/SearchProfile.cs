@@ -16,26 +16,3 @@ public class SearchProfile
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 }
-
-public class DiscoveryRunResult
-{
-    public string RunId { get; set; } = string.Empty;
-    public string InitiatedBy { get; set; } = string.Empty;
-    public string ProfileName { get; set; } = string.Empty;
-    public DateTime InitiatedAtUtc { get; set; } = DateTime.UtcNow;
-    public DateTime CompletedAtUtc { get; set; } = DateTime.UtcNow;
-    public string Status { get; set; } = "Completed";
-    public int EvaluatedCount { get; set; }
-    public int NewMatchesCount { get; set; }
-    public int DuplicateCount { get; set; }
-    public List<SourceRunMetric> SourceMetrics { get; set; } = new();
-}
-
-public class SourceRunMetric
-{
-    public string SourceName { get; set; } = string.Empty;
-    public int RecordsFetched { get; set; }
-    public int NewMatches { get; set; }
-    public int RejectedByPolicy { get; set; }
-    public string Status { get; set; } = "Success";
-}
