@@ -1,6 +1,7 @@
 using VsrSalesEngineWebApi.Core.DTOs;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using static VsrSalesEngineWebApi.Core.Services.ScheduleTiming;
 
 namespace VsrSalesEngineWebApi.Core.Services;
 
@@ -9,15 +10,18 @@ public class ScheduleExecutionService : IScheduleExecutionService
     private readonly IAutomationScheduleRepository _scheduleRepository;
     private readonly IDistributedLockService _lockService;
     private readonly IDiscoveryService? _discoveryService;
+    private readonly IAgentRelay? _relay;
 
     public ScheduleExecutionService(
         IAutomationScheduleRepository scheduleRepository,
         IDistributedLockService lockService,
-        IDiscoveryService? discoveryService = null)
+        IDiscoveryService? discoveryService = null,
+        IAgentRelay? relay = null)
     {
         _scheduleRepository = scheduleRepository;
         _lockService = lockService;
         _discoveryService = discoveryService;
+        _relay = relay;
     }
 
     public async Task<IReadOnlyList<AutomationScheduleDto>> GetSchedulesAsync()
@@ -145,6 +149,12 @@ public class ScheduleExecutionService : IScheduleExecutionService
                 schedule.UpdatedAtUtc = DateTime.UtcNow;
                 await _scheduleRepository.UpdateAsync(schedule);
 
+                if (_relay != null)
+                {
+                    await _relay.RecordSkippedAsync(BuildRelayRequest(schedule, trigger),
+                        $"{schedule.Name} is off duty (active {schedule.QuietHoursEnd}-{schedule.QuietHoursStart} {schedule.Timezone}). Skipping this run; next check {schedule.NextRunAtUtc:HH:mm} UTC.");
+                }
+
                 return new ScheduleRunExecutionResultDto(
                     ScheduleId: scheduleId,
                     Success: true,
@@ -157,8 +167,27 @@ public class ScheduleExecutionService : IScheduleExecutionService
 
             string resultMessage;
             string resultStatus = "Completed";
+            var runSucceeded = true;
 
-            if (_discoveryService != null)
+            if (_relay != null)
+            {
+                var run = await _relay.RunAsync(BuildRelayRequest(schedule, trigger));
+                if (run == null)
+                {
+                    // Another agent run is in progress: leave NextRunAtUtc alone so the next tick retries.
+                    return new ScheduleRunExecutionResultDto(
+                        ScheduleId: scheduleId,
+                        Success: true,
+                        Status: "RelayBusy",
+                        Message: $"Schedule '{schedule.Name}' waits: another agent run is in progress.",
+                        NextRunAtUtc: schedule.NextRunAtUtc,
+                        LockOwner: workerId);
+                }
+
+                runSucceeded = run.Status == "completed";
+                resultMessage = run.Summary ?? $"Schedule '{schedule.Name}' executed ({trigger}).";
+            }
+            else if (_discoveryService != null)
             {
                 var runResult = await _discoveryService.RunDiscoveryAsync(
                     new RunDiscoveryRequestDto(
@@ -178,7 +207,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
             }
 
             schedule.LastRunAtUtc = DateTime.UtcNow;
-            schedule.LastRunStatus = "Success";
+            schedule.LastRunStatus = runSucceeded ? "Success" : "Failed";
             schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency, schedule.IntervalHours);
             schedule.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -214,44 +243,8 @@ public class ScheduleExecutionService : IScheduleExecutionService
         }
     }
 
-    private static bool IsWithinQuietHours(AutomationSchedule schedule)
-    {
-        if (!TimeSpan.TryParse(schedule.QuietHoursStart, out var start) ||
-            !TimeSpan.TryParse(schedule.QuietHoursEnd, out var end))
-        {
-            return false;
-        }
-
-        var nowTod = LocalTimeOfDay(schedule.Timezone);
-
-        return start <= end
-            ? nowTod >= start && nowTod < end
-            : nowTod >= start || nowTod < end;
-    }
-
-    private static TimeSpan LocalTimeOfDay(string timezone)
-    {
-        try
-        {
-            var zone = TimeZoneInfo.FindSystemTimeZoneById(timezone);
-            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone).TimeOfDay;
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return DateTime.UtcNow.TimeOfDay;
-        }
-    }
-
-    private static DateTime CalculateNextRun(string frequency, int intervalHours = 0)
-    {
-        var now = DateTime.UtcNow;
-        if (intervalHours > 0) return now.AddHours(intervalHours);
-        return frequency.ToUpperInvariant() switch
-        {
-            "WEEKLY" => now.AddDays(7),
-            _ => now.AddHours(24) // Daily
-        };
-    }
+    private static RelayRequest BuildRelayRequest(AutomationSchedule schedule, string trigger) =>
+        new(schedule.Id, schedule.Name, schedule.ProfileId, schedule.SelectedSources, schedule.RunCap, trigger);
 
     private static AutomationScheduleDto ToDto(AutomationSchedule s) => new(
         s.Id,

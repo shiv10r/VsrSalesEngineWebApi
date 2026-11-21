@@ -31,7 +31,7 @@ public class DueScheduleRunner : IDueScheduleRunner
             results.Add(await _executionService.ExecuteScheduleNowAsync(schedule.Id, trigger));
         }
 
-        var skipped = results.Count(r => r.Status is "SkippedQuietHours" or "ConcurrencyLocked");
+        var skipped = results.Count(r => r.Status is "SkippedQuietHours" or "ConcurrencyLocked" or "RelayBusy");
         return new DueRunSummaryDto(schedules.Count, results.Count - skipped, skipped, results);
     }
 
