@@ -32,6 +32,14 @@ public class OpportunityRepository : IOpportunityRepository
         return await FilterOpportunitiesAsync(filter ?? new OpportunityFilterDto(null, null, null, null, null), cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DateTime>> GetRetrievedTimesAsync(DateTime sinceUtc, CancellationToken cancellationToken = default)
+    {
+        return await _context.Opportunities.AsNoTracking()
+            .Where(o => o.RetrievedAtUtc >= sinceUtc)
+            .Select(o => o.RetrievedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Opportunity?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _context.Opportunities.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);

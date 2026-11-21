@@ -234,8 +234,8 @@ public class AgentRelayTests
     [Fact]
     public async Task RunNowEndpoint_Returns409WhenBusy_And202WithRunIdOtherwise()
     {
-        var busy = new AgentActivityController(Activity(), new FakeLauncher(null)) { ControllerContext = WithHttpContext() };
-        var started = new AgentActivityController(Activity(), new FakeLauncher("RUN-1")) { ControllerContext = WithHttpContext() };
+        var busy = new AgentActivityController(Activity(), new FakeLauncher(null), Heatmap()) { ControllerContext = WithHttpContext() };
+        var started = new AgentActivityController(Activity(), new FakeLauncher("RUN-1"), Heatmap()) { ControllerContext = WithHttpContext() };
 
         Assert.IsType<ConflictObjectResult>(await busy.RunNow());
         var accepted = Assert.IsType<AcceptedResult>(await started.RunNow());
@@ -377,6 +377,8 @@ public class AgentRelayTests
         new() { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() };
 
     private AgentActivityService Activity() => new(_runs, new AutomationScheduleRepository(_context));
+
+    private LeadHeatmapService Heatmap() => new(_opportunities, _runs);
 
     private sealed class FakeLauncher : IManualRunLauncher
     {
