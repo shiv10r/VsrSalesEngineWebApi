@@ -21,6 +21,8 @@ public class VsrDbContext : DbContext
     public DbSet<DistributedRunLock> Locks => Set<DistributedRunLock>();
     public DbSet<SinkMessage> SinkMessages => Set<SinkMessage>();
     public DbSet<SourceFailureCount> SourceFailureCounts => Set<SourceFailureCount>();
+    public DbSet<AgentRun> AgentRuns => Set<AgentRun>();
+    public DbSet<AgentEvent> AgentEvents => Set<AgentEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +47,14 @@ public class VsrDbContext : DbContext
         });
 
         modelBuilder.Entity<Contact>(e => e.HasKey(c => c.Id));
+
+        modelBuilder.Entity<AgentRun>(e => e.HasKey(r => r.Id));
+        modelBuilder.Entity<AgentEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).ValueGeneratedOnAdd();
+            e.HasIndex(x => x.RunId);
+        });
 
         modelBuilder.Entity<SearchProfile>(e =>
         {
