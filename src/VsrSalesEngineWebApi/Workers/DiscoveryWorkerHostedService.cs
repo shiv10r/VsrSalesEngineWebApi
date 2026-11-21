@@ -22,9 +22,17 @@ public class DiscoveryWorkerHostedService : BackgroundService
         {
             try
             {
-                await RunDueSchedulesAsync(stoppingToken);
+                using var scope = _scopeFactory.CreateScope();
+                var runner = scope.ServiceProvider.GetRequiredService<IDueScheduleRunner>();
+                var summary = await runner.RunDueAsync("AutonomousWorker", stoppingToken);
+
+                if (summary.SchedulesRun + summary.SchedulesSkipped > 0)
+                {
+                    _logger.LogInformation("Worker tick: {Run} run, {Skipped} skipped of {Checked} schedules.",
+                        summary.SchedulesRun, summary.SchedulesSkipped, summary.SchedulesChecked);
+                }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(ex, "Autonomous discovery worker tick failed.");
             }
@@ -33,39 +41,9 @@ public class DiscoveryWorkerHostedService : BackgroundService
             {
                 await Task.Delay(PollInterval, stoppingToken);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 break;
-            }
-        }
-    }
-
-    private async Task RunDueSchedulesAsync(CancellationToken cancellationToken)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var scheduleRepository = scope.ServiceProvider.GetRequiredService<IAutomationScheduleRepository>();
-        var scheduleExecutionService = scope.ServiceProvider.GetRequiredService<IScheduleExecutionService>();
-
-        var schedules = await scheduleRepository.GetAllAsync();
-        var now = DateTime.UtcNow;
-
-        foreach (var schedule in schedules)
-        {
-            if (cancellationToken.IsCancellationRequested) break;
-            if (!schedule.IsEnabled) continue;
-            if (schedule.NextRunAtUtc > now) continue;
-
-            _logger.LogInformation("Autonomous worker triggering due schedule '{ScheduleId}' ({Name}).", schedule.Id, schedule.Name);
-
-            var result = await scheduleExecutionService.ExecuteScheduleNowAsync(schedule.Id, "AutonomousWorker");
-
-            if (!result.Success)
-            {
-                _logger.LogWarning("Autonomous schedule run for '{ScheduleId}' did not complete: {Status} - {Message}", schedule.Id, result.Status, result.Message);
-            }
-            else
-            {
-                _logger.LogInformation("Autonomous schedule run for '{ScheduleId}' completed: {Message}", schedule.Id, result.Message);
             }
         }
     }

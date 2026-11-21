@@ -67,7 +67,7 @@ public class LiveJobFeedService : ILiveJobFeedService
         }
 
         // 2. We Work Remotely
-        if (checkAll || selected.Any(s => s.Contains("wework") || s.Contains("wwr")))
+        if (checkAll || selected.Any(s => s.Contains("wework") || s.Contains("we work") || s.Contains("wwr")))
         {
             var wwr = await FetchWeWorkRemotelyContractJobsAsync(keywords, perSource, cancellationToken);
             combined.AddRange(wwr);

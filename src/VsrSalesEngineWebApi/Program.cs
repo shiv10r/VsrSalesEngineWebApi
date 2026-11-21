@@ -85,6 +85,7 @@ builder.Services.AddScoped<IOutreachDraftService, OutreachDraftService>();
 builder.Services.AddScoped<IOutreachSender, OutreachSenderService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IScheduleExecutionService, ScheduleExecutionService>();
+builder.Services.AddScoped<IDueScheduleRunner, DueScheduleRunner>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 
 // LLM & AI Services (Gemini as default provider)

@@ -11,13 +11,13 @@ which was not true.
 
 | Status | Count |
 |---|---|
-| ✅ Done (checked) | 3 |
-| 🟡 In progress | 2 |
-| ⬜ To do | 11 |
-| ⛔ Blocked | 1 |
+| ✅ Done (checked) | 5 |
+| 🟡 In progress | 6 |
+| ⬜ To do | 6 |
+| ⛔ Blocked | 2 |
 | ❔ Claimed done earlier, not re-checked | 19 |
 | ❌ Claimed done earlier, actually not done | 3 |
-| **Total** | **39** |
+| **Total** | **41** |
 
 Update this table whenever a task changes status.
 
@@ -38,21 +38,23 @@ Goal: agents run every 1–2 hours on free plans (Render backend + Supabase data
 | # | Task | Status | Notes |
 |---|---|---|---|
 | N01 | Real database storage (EF Core / Postgres) and background worker | 🟡 | Built and tested locally on branch `feature/live-persistence-and-autonomous-worker`. Not pushed. |
-| N02 | Shift agents: run every N hours, live sources only (Hacker News, We Work Remotely, Remotive, Jobicy) | ⬜ | Remove the "Company careers" source, which makes fake leads. Check shift windows in India time, not UTC. |
-| N03 | Secured endpoint `POST /api/agents/run-due` to wake and run due agents | ⬜ | Protected by a secret key. |
-| N04 | GitHub Actions "alarm clock" that calls N03 every 1–2 hours | ⬜ | Fits the free limits: ~360–720 of 2,000 Actions minutes and ~90–180 of 750 Render hours per month. |
-| N05 | Agent status endpoint and dashboard view (what each agent last found) | ⬜ | |
+| N02 | Shift agents: run every N hours, live sources only (Hacker News, We Work Remotely, Remotive, Jobicy) | ✅ | Built and tested (136 tests pass) on branch `feature/hourly-shift-agents`. 3 shifts every 2 hours, windows in India time. Also fixed a bug where We Work Remotely was never fetched. |
+| N03 | Secured endpoint `POST /api/agents/run-due` to wake and run due agents | ✅ | Built and tested. Needs the `Agents__RunKey` secret set on Render. |
+| N04 | GitHub Actions "alarm clock" that calls N03 every 2 hours | 🟡 | File written (`.github/workflows/agent-run.yml`). Not run on GitHub yet: needs push plus secrets `API_BASE_URL` and `AGENT_RUN_KEY`. |
+| N05 | Agent status endpoint and dashboard view (what each agent last found) | 🟡 | `GET /api/agents/status` done. Dashboard and Agents screen in the frontend still to do. |
 | N06 | Connect Supabase (`ConnectionStrings__DefaultConnection`) | ⬜ | **Waiting on you:** Supabase connection string. |
 | N07 | Push branch, open PR, deploy backend to Render, confirm `/health` | ⬜ | `/health` returned 404 on 2026-11-21. Never deployed. |
 | N08 | Point the frontend `VITE_API_BASE_URL` at the real Render URL and redeploy | ⬜ | |
 | N09 | Single honest task tracker (this file) | ✅ | Done 2026-11-21. |
 | N10 | Design the architecture and whole workflow first (`docs/ARCHITECTURE.md`) | ✅ | Approved by you 2026-11-21, including the 7-step agent relay. |
-| N11 | Refactor backend to repository pattern + MVC, standardise code | ⬜ | Owner: backend-dev. Thin controllers, services, repositories. |
-| N12 | Split oversized files (limit 300 lines backend, 250 React) | ⬜ | Worst: `App.tsx` 2,789 lines, `api.ts` 958, `LiveJobFeedService.cs` 496, `ReliabilityService.cs` 346, `OutreachDraftService.cs` 321. |
+| N11 | Refactor backend to repository pattern + MVC, standardise code | 🟡 | Dead entities removed. Layering already enforced by a test. Remaining: audit controllers for data access. |
+| N12 | Split oversized files (limit 300 lines backend, 250 React) | 🟡 | Backend done: `LiveJobFeedService` 496→92, `ReliabilityService` 346→250, `OutreachDraftService` 321→205. `DiscoveryService.cs` is 305. Frontend `App.tsx` split in progress. |
 | N13 | New UI design of the system, shown to you as a mockup | 🟡 | Mockup built: open `docs/ui-mockup/index.html` in a browser. Sample data only. Waiting for your review. |
 | N14 | Agent team definitions (10 agents in `agents/`) | ✅ | Done 2026-11-21. Roster in `agents/README.md`. |
 | N15 | Hourly dashboard agents: run every hour for a few minutes, fetch new leads and other data | ⬜ | Same work as N02–N05; N05 is the dashboard view. |
 | N16 | Daily status log (`docs/DAILY_STATUS.md`), updated every day | ⬜ | Replaces the Notion idea (see N17). |
+| N18 | For leads scoring over 50: auto-draft email and a LinkedIn message text, auto-send email only after the compliance gate passes | ⬜ | Email sending stays in test mode until a provider key and verified sending domain exist. |
+| N19 | Auto-send LinkedIn connection requests and messages | ⛔ | LinkedIn bans automated connections and messages, and the app's own source policy (SRC-006) prohibits it. Replaced by a manual one-click handoff (profile link plus copy-ready message) inside N18. |
 | N17 | Write status and architecture to a Notion folder "VSR Sales Engine" | ⛔ | `Codebase/AGENTS.md` forbids sending project data to outside services, with no approval exception. Needs you to change that rule yourself. |
 
 ---

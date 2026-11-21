@@ -27,7 +27,7 @@ public class ScheduleAndLockServiceTests
         var schedules = await _service.GetSchedulesAsync();
 
         Assert.NotEmpty(schedules);
-        Assert.Contains(schedules, s => s.Frequency == "Daily");
+        Assert.Contains(schedules, s => s.Frequency == "Interval" && s.IntervalHours == 2);
         Assert.Contains(schedules, s => s.Frequency == "Weekly");
     }
 
