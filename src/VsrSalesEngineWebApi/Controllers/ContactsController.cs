@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -44,6 +45,7 @@ public class ContactsController : ControllerBase
         return Ok(contact);
     }
 
+    [DisallowGuest]
     [HttpPost]
     [ProducesResponseType(typeof(ContactDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -61,6 +63,7 @@ public class ContactsController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ContactDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -80,6 +83,7 @@ public class ContactsController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpPatch("{id}/qualify")]
     [ProducesResponseType(typeof(ContactDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -99,6 +103,7 @@ public class ContactsController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

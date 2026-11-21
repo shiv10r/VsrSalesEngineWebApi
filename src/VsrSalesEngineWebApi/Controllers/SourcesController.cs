@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VsrSalesEngineWebApi.Core.DTOs;
@@ -25,6 +26,7 @@ public class SourcesController : ControllerBase
         return Ok(sources);
     }
 
+    [DisallowGuest]
     [HttpPut("{id}/status")]
     [ProducesResponseType(typeof(SourceDefinitionDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

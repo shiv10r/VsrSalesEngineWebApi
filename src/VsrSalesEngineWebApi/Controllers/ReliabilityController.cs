@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using Microsoft.AspNetCore.Mvc;
 using VsrSalesEngineWebApi.Core.DTOs;
 using VsrSalesEngineWebApi.Core.Interfaces;
@@ -43,6 +44,7 @@ public class ReliabilityController : ControllerBase
         return Ok(deadLetters);
     }
 
+    [DisallowGuest]
     [HttpPost("failures/{id}/retry")]
     public async Task<ActionResult<RetryExecutionResultDto>> RetryFailure(string id)
     {
@@ -60,6 +62,7 @@ public class ReliabilityController : ControllerBase
         return Ok(result);
     }
 
+    [DisallowGuest]
     [HttpPost("simulate-failure")]
     public async Task<ActionResult<ExecutionRecordDto>> SimulateFailure([FromBody] SimulateFailureRequestDto request)
     {
@@ -82,6 +85,7 @@ public class ReliabilityController : ControllerBase
         });
     }
 
+    [DisallowGuest]
     [HttpPost("kill-switch/toggle")]
     public ActionResult<object> ToggleKillSwitch([FromBody] ToggleKillSwitchRequest? request)
     {

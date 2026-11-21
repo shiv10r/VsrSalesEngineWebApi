@@ -11,13 +11,13 @@ which was not true.
 
 | Status | Count |
 |---|---|
-| ✅ Done (checked) | 5 |
-| 🟡 In progress | 6 |
-| ⬜ To do | 6 |
+| ✅ Done (checked) | 7 |
+| 🟡 In progress | 5 |
+| ⬜ To do | 7 |
 | ⛔ Blocked | 2 |
 | ❔ Claimed done earlier, not re-checked | 19 |
 | ❌ Claimed done earlier, actually not done | 3 |
-| **Total** | **41** |
+| **Total** | **43** |
 
 Update this table whenever a task changes status.
 
@@ -48,13 +48,15 @@ Goal: agents run every 1–2 hours on free plans (Render backend + Supabase data
 | N09 | Single honest task tracker (this file) | ✅ | Done 2026-11-21. |
 | N10 | Design the architecture and whole workflow first (`docs/ARCHITECTURE.md`) | ✅ | Approved by you 2026-11-21, including the 7-step agent relay. |
 | N11 | Refactor backend to repository pattern + MVC, standardise code | 🟡 | Dead entities removed. Layering already enforced by a test. Remaining: audit controllers for data access. |
-| N12 | Split oversized files (limit 300 lines backend, 250 React) | 🟡 | Backend done: `LiveJobFeedService` 496→92, `ReliabilityService` 346→250, `OutreachDraftService` 321→205. `DiscoveryService.cs` is 305. Frontend `App.tsx` split in progress. |
+| N12 | Split oversized files (limit 300 lines backend, 250 React) | ✅ | Backend: `LiveJobFeedService` 496→92, `ReliabilityService` 346→250, `OutreachDraftService` 321→205 (`DiscoveryService.cs` still 305). Frontend: `App.tsx` 2,789→26, `api.ts` 958→28, nothing over 250. Checked by build, tests and identical-render comparison. Still worth a manual click-through. |
 | N13 | New UI design of the system, shown to you as a mockup | 🟡 | Mockup built: open `docs/ui-mockup/index.html` in a browser. Sample data only. Waiting for your review. |
 | N14 | Agent team definitions (10 agents in `agents/`) | ✅ | Done 2026-11-21. Roster in `agents/README.md`. |
 | N15 | Hourly dashboard agents: run every hour for a few minutes, fetch new leads and other data | ⬜ | Same work as N02–N05; N05 is the dashboard view. |
 | N16 | Daily status log (`docs/DAILY_STATUS.md`), updated every day | ⬜ | Replaces the Notion idea (see N17). |
 | N18 | For leads scoring over 50: auto-draft email and a LinkedIn message text, auto-send email only after the compliance gate passes | ⬜ | Email sending stays in test mode until a provider key and verified sending domain exist. |
 | N19 | Auto-send LinkedIn connection requests and messages | ⛔ | LinkedIn bans automated connections and messages, and the app's own source policy (SRC-006) prohibits it. Replaced by a manual one-click handoff (profile link plus copy-ready message) inside N18. |
+| N20 | Website security: headers, rate limits, guest guard, secret-key check, CSP | ✅ | Backend verified live (headers, guest 403, login 429, production refuses placeholder secret). 144 tests. Frontend CSP needs a check on the Vercel preview. Package upgrade not done (needs your approval). |
+| N21 | Filter irrelevant leads (copywriter, customer service) using the profile keywords before saving | ⬜ | Seen in the live run on 2026-11-21. Belongs in the Scorer step. |
 | N17 | Write status and architecture to a Notion folder "VSR Sales Engine" | ⛔ | `Codebase/AGENTS.md` forbids sending project data to outside services, with no approval exception. Needs you to change that rule yourself. |
 
 ---
@@ -89,6 +91,21 @@ These were all marked **DONE** before. Each one is re-marked honestly below.
 | PR-21 | T068–T070 | Deployment pipelines, runbook, smoke drill, handover | ❌ | Backend was never deployed (`/health` returns 404). Covered by N06–N08. |
 
 ---
+
+## Pull requests (raised 2026-11-22, all into `develop`, merge in this order with a merge commit)
+
+| Order | Repo | PR | Content |
+|---|---|---|---|
+| 1 | Backend | #27 | Database persistence, worker, tracker, docs |
+| 2 | Backend | #28 | Remove unused entities |
+| 3 | Backend | #29 | Split oversized services |
+| 4 | Backend | #30 | 2-hour shift agents, run-due endpoint |
+| 5 | Backend | #31 | Security hardening |
+| 6 | Frontend | #30 | Remove unused type |
+| 7 | Frontend | #31 | Split App.tsx and api.ts |
+| 8 | Frontend | #32 | CSP and security headers |
+
+After all are merged into `develop`: open `develop` -> `main` in each repo.
 
 ## Decisions made
 

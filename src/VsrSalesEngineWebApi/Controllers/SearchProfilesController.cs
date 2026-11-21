@@ -1,3 +1,4 @@
+using VsrSalesEngineWebApi.Security;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ public class SearchProfilesController : ControllerBase
         return Ok(profile);
     }
 
+    [DisallowGuest]
     [HttpPost]
     [ProducesResponseType(typeof(SearchProfileDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -53,6 +55,7 @@ public class SearchProfilesController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(SearchProfileDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -64,6 +67,7 @@ public class SearchProfilesController : ControllerBase
         return Ok(updated);
     }
 
+    [DisallowGuest]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -24,3 +24,7 @@ services:
         sync: false
       - key: Jwt__SecretKey
         generateValue: true
+      # Shared secret for POST /api/agents/run-due. Copy the generated value into the
+      # GitHub repository secret AGENT_RUN_KEY (and set API_BASE_URL) so the 2-hour timer can call it.
+      - key: Agents__RunKey
+        generateValue: true

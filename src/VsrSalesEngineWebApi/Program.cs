@@ -8,6 +8,7 @@ using VsrSalesEngineWebApi.Core.Services;
 using VsrSalesEngineWebApi.Infrastructure.Data;
 using VsrSalesEngineWebApi.Infrastructure.Repositories;
 using VsrSalesEngineWebApi.Infrastructure.Services;
+using VsrSalesEngineWebApi.Security;
 using VsrSalesEngineWebApi.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,7 @@ var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
 var secretKey = jwtSection.GetValue<string>("SecretKey") ?? "VsrSalesEngineDevelopmentSecureSecretKeyMustBe32BytesLong!";
 var issuer = jwtSection.GetValue<string>("Issuer") ?? "VsrSalesEngineApi";
 var audience = jwtSection.GetValue<string>("Audience") ?? "VsrSalesEngineClients";
+SecurityExtensions.EnsureStrongJwtSecret(secretKey, builder.Environment);
 
 // JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -131,6 +133,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddApiRateLimiting();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -147,7 +150,14 @@ using (var scope = app.Services.CreateScope())
     await VsrDbSeeder.SeedAsync(db);
 }
 
+app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseGenericErrorResponses();
+}
+app.UseSecurityHeaders(enableHsts: !app.Environment.IsDevelopment());
 app.UseCors("AllowConfiguredOrigins");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
