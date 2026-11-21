@@ -160,7 +160,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<VsrDbContext>();
     db.Database.EnsureCreated();
-    await VsrDbSeeder.SeedAsync(db);
+    // Demo logins exist only in Development. Elsewhere set Seed__AdminEmail and Seed__AdminPassword
+    // (12+ characters) to create one Admin with a hashed password; otherwise no users are created.
+    var userSeed = UserSeedOptions.Resolve(
+        app.Environment.IsDevelopment(),
+        builder.Configuration["Seed:AdminEmail"],
+        builder.Configuration["Seed:AdminPassword"]);
+    await VsrDbSeeder.SeedAsync(db, userSeed);
 }
 
 app.UseForwardedHeaders();

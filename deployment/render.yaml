@@ -24,6 +24,12 @@ services:
         sync: false
       - key: Jwt__SecretKey
         generateValue: true
+      # First administrator. Production seeds NO demo users; without these two values nobody can sign in
+      # (guest mode is also off). Choose a password of 12+ characters. Set in the Render dashboard, never in git.
+      - key: Seed__AdminEmail
+        sync: false
+      - key: Seed__AdminPassword
+        sync: false
       # Shared secret for POST /api/agents/run-due. Copy the generated value into the
       # GitHub repository secret AGENT_RUN_KEY (and set API_BASE_URL) so the 2-hour timer can call it.
       - key: Agents__RunKey
