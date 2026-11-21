@@ -18,7 +18,8 @@ public record AutomationScheduleDto(
     string LastRunStatus,
     string CreatedBy,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc
+    DateTime UpdatedAtUtc,
+    int IntervalHours = 24
 );
 
 public record CreateScheduleDto(
@@ -32,7 +33,8 @@ public record CreateScheduleDto(
     int? RunCap,
     string? QuietHoursStart,
     string? QuietHoursEnd,
-    bool? IsEnabled
+    bool? IsEnabled,
+    int? IntervalHours = null
 );
 
 public record UpdateScheduleDto(
@@ -46,10 +48,31 @@ public record UpdateScheduleDto(
     int? RunCap,
     string? QuietHoursStart,
     string? QuietHoursEnd,
-    bool? IsEnabled
+    bool? IsEnabled,
+    int? IntervalHours = null
 );
 
 public record ToggleScheduleDto(bool IsEnabled);
+
+public record DueRunSummaryDto(
+    int SchedulesChecked,
+    int SchedulesRun,
+    int SchedulesSkipped,
+    IReadOnlyList<ScheduleRunExecutionResultDto> Results
+);
+
+public record AgentStatusDto(
+    string ScheduleId,
+    string Name,
+    bool IsEnabled,
+    int IntervalHours,
+    string Timezone,
+    string ActiveWindow,
+    IReadOnlyList<string> Sources,
+    DateTime? LastRunAtUtc,
+    DateTime NextRunAtUtc,
+    string LastRunStatus
+);
 
 public record ScheduleRunExecutionResultDto(
     string ScheduleId,

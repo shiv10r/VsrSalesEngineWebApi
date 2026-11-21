@@ -48,7 +48,8 @@ public class ScheduleExecutionService : IScheduleExecutionService
             RunCap = dto.RunCap.GetValueOrDefault(50),
             QuietHoursStart = dto.QuietHoursStart ?? "22:00",
             QuietHoursEnd = dto.QuietHoursEnd ?? "07:00",
-            NextRunAtUtc = CalculateNextRun(dto.Frequency ?? "Daily"),
+            IntervalHours = dto.IntervalHours is > 0 ? dto.IntervalHours.Value : 24,
+            NextRunAtUtc = CalculateNextRun(dto.Frequency ?? "Daily", dto.IntervalHours ?? 0),
             LastRunStatus = "Ready",
             CreatedBy = user,
             CreatedAtUtc = DateTime.UtcNow,
@@ -75,7 +76,8 @@ public class ScheduleExecutionService : IScheduleExecutionService
         if (!string.IsNullOrWhiteSpace(dto.QuietHoursStart)) existing.QuietHoursStart = dto.QuietHoursStart.Trim();
         if (!string.IsNullOrWhiteSpace(dto.QuietHoursEnd)) existing.QuietHoursEnd = dto.QuietHoursEnd.Trim();
         if (dto.IsEnabled.HasValue) existing.IsEnabled = dto.IsEnabled.Value;
-        existing.NextRunAtUtc = CalculateNextRun(existing.Frequency);
+        if (dto.IntervalHours is > 0) existing.IntervalHours = dto.IntervalHours.Value;
+        existing.NextRunAtUtc = CalculateNextRun(existing.Frequency, existing.IntervalHours);
         existing.UpdatedAtUtc = DateTime.UtcNow;
 
         var updated = await _scheduleRepository.UpdateAsync(existing);
@@ -91,7 +93,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
         existing.UpdatedAtUtc = DateTime.UtcNow;
         if (isEnabled)
         {
-            existing.NextRunAtUtc = CalculateNextRun(existing.Frequency);
+            existing.NextRunAtUtc = CalculateNextRun(existing.Frequency, existing.IntervalHours);
         }
 
         var updated = await _scheduleRepository.UpdateAsync(existing);
@@ -136,10 +138,10 @@ public class ScheduleExecutionService : IScheduleExecutionService
 
         try
         {
-            if (trigger == "AutonomousWorker" && IsWithinQuietHours(schedule))
+            if (trigger is "AutonomousWorker" or "ExternalTimer" && IsWithinQuietHours(schedule))
             {
                 schedule.LastRunStatus = "SkippedQuietHours";
-                schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency);
+                schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency, schedule.IntervalHours);
                 schedule.UpdatedAtUtc = DateTime.UtcNow;
                 await _scheduleRepository.UpdateAsync(schedule);
 
@@ -177,7 +179,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
 
             schedule.LastRunAtUtc = DateTime.UtcNow;
             schedule.LastRunStatus = "Success";
-            schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency);
+            schedule.NextRunAtUtc = CalculateNextRun(schedule.Frequency, schedule.IntervalHours);
             schedule.UpdatedAtUtc = DateTime.UtcNow;
 
             await _scheduleRepository.UpdateAsync(schedule);
@@ -220,16 +222,30 @@ public class ScheduleExecutionService : IScheduleExecutionService
             return false;
         }
 
-        var nowTod = DateTime.UtcNow.TimeOfDay;
+        var nowTod = LocalTimeOfDay(schedule.Timezone);
 
         return start <= end
             ? nowTod >= start && nowTod < end
             : nowTod >= start || nowTod < end;
     }
 
-    private static DateTime CalculateNextRun(string frequency)
+    private static TimeSpan LocalTimeOfDay(string timezone)
+    {
+        try
+        {
+            var zone = TimeZoneInfo.FindSystemTimeZoneById(timezone);
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone).TimeOfDay;
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return DateTime.UtcNow.TimeOfDay;
+        }
+    }
+
+    private static DateTime CalculateNextRun(string frequency, int intervalHours = 0)
     {
         var now = DateTime.UtcNow;
+        if (intervalHours > 0) return now.AddHours(intervalHours);
         return frequency.ToUpperInvariant() switch
         {
             "WEEKLY" => now.AddDays(7),
@@ -255,6 +271,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
         s.LastRunStatus,
         s.CreatedBy,
         s.CreatedAtUtc,
-        s.UpdatedAtUtc
+        s.UpdatedAtUtc,
+        s.IntervalHours
     );
 }
