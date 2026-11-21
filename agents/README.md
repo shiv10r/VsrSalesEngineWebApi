@@ -1,7 +1,7 @@
 # VSR Sales Engine — Agent Team
 
 Each file here defines one agent (role, what it may touch, what it must hand back).
-To use them in Claude Code, copy or link them into `.claude/agents/`.
+They are installed in `.claude/agents/`, which is where Claude Code loads agents from. Edit them there. This README holds the rules they share.
 
 ## Rules every agent follows
 1. **Boundary:** work only inside `C:\Users\ADMIN\Codebase`. No external uploads (see `Codebase/AGENTS.md`).
