@@ -15,12 +15,20 @@ public class AgentActivityController : ControllerBase
 {
     private readonly IAgentActivityService _activity;
     private readonly IManualRunLauncher _launcher;
+    private readonly ILeadHeatmapService _heatmap;
 
-    public AgentActivityController(IAgentActivityService activity, IManualRunLauncher launcher)
+    public AgentActivityController(IAgentActivityService activity, IManualRunLauncher launcher, ILeadHeatmapService heatmap)
     {
         _activity = activity;
         _launcher = launcher;
+        _heatmap = heatmap;
     }
+
+    /// <summary>When leads arrive: new leads and agent runs by day of week and hour (India time). Days is clamped to 7-90.</summary>
+    [HttpGet("heatmap")]
+    [ProducesResponseType(typeof(LeadHeatmapDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetHeatmap([FromQuery] int days = 28, CancellationToken cancellationToken = default)
+        => Ok(await _heatmap.GetHeatmapAsync(days, cancellationToken));
 
     [HttpGet("overview")]
     [ProducesResponseType(typeof(AgentOverviewDto), StatusCodes.Status200OK)]

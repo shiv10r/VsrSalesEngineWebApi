@@ -12,6 +12,7 @@ public interface IAgentRunRepository
     Task<IReadOnlyList<AgentRun>> GetRunsAsync(int take);
     Task<AgentRun?> GetRunningAsync(DateTime notOlderThanUtc);
     Task<int> FailStaleRunsAsync(DateTime olderThanUtc);
+    Task<IReadOnlyList<DateTime>> GetRunStartTimesAsync(DateTime sinceUtc);
 
     Task<AgentEvent> AddEventAsync(AgentEvent agentEvent);
     Task<IReadOnlyList<AgentEvent>> GetEventsAsync(long afterId, int take, string? runId);

@@ -75,6 +75,12 @@ public class AgentRunRepository : IAgentRunRepository
         return await query.OrderBy(e => e.Id).Take(Math.Clamp(take, 1, 500)).ToListAsync();
     }
 
+    public async Task<IReadOnlyList<DateTime>> GetRunStartTimesAsync(DateTime sinceUtc) =>
+        await _context.AgentRuns.AsNoTracking()
+            .Where(r => r.StartedAtUtc >= sinceUtc)
+            .Select(r => r.StartedAtUtc)
+            .ToListAsync();
+
     public Task<AgentEvent?> GetLatestEventAsync(string runId) =>
         _context.AgentEvents.AsNoTracking()
             .Where(e => e.RunId == runId)

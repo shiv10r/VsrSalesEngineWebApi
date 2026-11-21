@@ -12,4 +12,7 @@ public interface IOpportunityRepository
     Task<Opportunity> AddAsync(Opportunity opportunity, CancellationToken cancellationToken = default);
     Task<Opportunity?> UpdateAsync(Opportunity opportunity, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>When each lead was retrieved, for leads retrieved at or after <paramref name="sinceUtc"/>.</summary>
+    Task<IReadOnlyList<DateTime>> GetRetrievedTimesAsync(DateTime sinceUtc, CancellationToken cancellationToken = default);
 }
