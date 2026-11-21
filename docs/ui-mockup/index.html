@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VSR Sales Engine - UI Mockup</title>
+<style>
+  :root{
+    --bg:#f5f6fa; --panel:#fff; --text:#1c2030; --muted:#6b7285; --line:#e3e6ee;
+    --brand:#3b5bdb; --brand-soft:#e8edff; --ok:#1f9d63; --warn:#c77d0a; --bad:#d6403f;
+    --ok-soft:#e3f6ec; --warn-soft:#fdf1dc; --bad-soft:#fde7e7;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#12141c;--panel:#1b1e29;--text:#eceef5;--muted:#99a0b5;--line:#2a2e3d;
+      --brand:#8aa2ff;--brand-soft:#262c4a;--ok:#4cc38a;--warn:#e6a845;--bad:#ef6b6a;
+      --ok-soft:#1b3328;--warn-soft:#3a2e17;--bad-soft:#3a1f1f;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+  .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  nav{background:var(--panel);border-right:1px solid var(--line);padding:20px 12px}
+  .logo{font-weight:700;font-size:17px;padding:0 10px 16px}
+  .logo small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  nav button{display:block;width:100%;text-align:left;padding:10px 12px;margin:2px 0;border:0;border-radius:8px;
+    background:none;color:var(--text);font:inherit;cursor:pointer}
+  nav button:hover{background:var(--bg)}
+  nav button.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
+  main{padding:24px;max-width:1100px}
+  h1{margin:0 0 4px;font-size:22px}
+  .sub{color:var(--muted);margin:0 0 20px}
+  .banner{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:16px;font-size:13px}
+  .grid{display:grid;gap:14px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .stat b{display:block;font-size:26px}
+  .stat span{color:var(--muted);font-size:13px}
+  h2{font-size:16px;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);font-size:14px}
+  th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+  .ok{background:var(--ok-soft);color:var(--ok)} .warn{background:var(--warn-soft);color:var(--warn)}
+  .bad{background:var(--bad-soft);color:var(--bad)} .info{background:var(--brand-soft);color:var(--brand)}
+  .score{font-weight:700}
+  .relay{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:6px}
+  .step{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);position:relative}
+  .step .n{font-size:11px;color:var(--muted)}
+  .step b{display:block;margin:2px 0 6px}
+  .step .io{font-size:12px;color:var(--muted)}
+  .step.done{border-color:var(--ok)} .step.run{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;background:var(--brand)}
+  .log{font:12.5px/1.6 ui-monospace,Consolas,monospace;color:var(--muted)}
+  .log b{color:var(--text)}
+  .two{grid-template-columns:2fr 1fr}
+  .shift{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .shift:last-child{border:0}
+  button.act{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+  .screen{display:none} .screen.on{display:block}
+  @media (max-width:760px){
+    .app{grid-template-columns:1fr}
+    nav{display:flex;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px}
+    nav .logo{display:none} nav button{white-space:nowrap;width:auto}
+    main{padding:16px}.two{grid-template-columns:1fr}
+    table{display:block;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav>
+    <div class="logo">VSR Sales Engine<small>Lead hunter</small></div>
+    <button class="active" data-s="dash">Dashboard</button>
+    <button data-s="agents">Agents</button>
+    <button data-s="leads">Leads</button>
+    <button data-s="camp">Campaigns</button>
+  </nav>
+  <main>
+    <div class="banner">Design mockup with SAMPLE data. Nothing here is connected to the real app.</div>
+
+    <!-- DASHBOARD -->
+    <section class="screen on" id="dash">
+      <h1>Dashboard</h1>
+      <p class="sub">Last agent run: today 14:00, finished in 6 min. Next run: 16:00.</p>
+      <div class="grid stats">
+        <div class="card stat"><b>18</b><span>New leads (last run)</span></div>
+        <div class="card stat"><b>126</b><span>Leads this week</span></div>
+        <div class="card stat"><b>9</b><span>Drafts waiting for approval</span></div>
+        <div class="card stat"><b>4 / 4</b><span>Live sources healthy</span></div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h2>Newest leads</h2>
+          <table>
+            <tr><th>Company</th><th>Need</th><th>Source</th><th>Score</th></tr>
+            <tr><td>Northwind Labs</td><td>.NET API contractor</td><td>Hacker News</td><td class="score">92</td></tr>
+            <tr><td>Brightpath</td><td>React dashboard build</td><td>Remotive</td><td class="score">87</td></tr>
+            <tr><td>Kestrel Pay</td><td>Cloud migration</td><td>We Work Remotely</td><td class="score">81</td></tr>
+            <tr><td>Aldermoor</td><td>Backend team augmentation</td><td>Jobicy</td><td class="score">74</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Agent shifts (India time)</h2>
+          <div class="shift"><span>Morning 06-14</span><span class="pill ok">Done</span></div>
+          <div class="shift"><span>Day 14-22</span><span class="pill info">Running</span></div>
+          <div class="shift"><span>Night 22-06</span><span class="pill warn">Waiting</span></div>
+          <p class="sub" style="margin:12px 0 0;font-size:13px">Runs every 2 hours inside each window.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- AGENTS -->
+    <section class="screen" id="agents">
+      <h1>Agents</h1>
+      <p class="sub">The relay for the latest run. Each agent hands its result to the next.</p>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Run #214 &middot; today 14:00 <span class="pill info">Running</span></h2>
+        <div class="relay">
+          <div class="step done"><span class="n">1</span><b>Scout</b><span class="io">4 sources &rarr; 53 postings</span></div>
+          <div class="step done"><span class="n">2</span><b>Dedupe</b><span class="io">53 &rarr; 21 new</span></div>
+          <div class="step done"><span class="n">3</span><b>Scorer</b><span class="io">21 scored</span></div>
+          <div class="step run"><span class="n">4</span><b>Contact finder</b><span class="io">12 of 21 done</span>
+            <div class="bar"><i style="width:57%"></i></div></div>
+          <div class="step"><span class="n">5</span><b>Drafter</b><span class="io">waiting</span></div>
+          <div class="step"><span class="n">6</span><b>Compliance gate</b><span class="io">waiting</span></div>
+          <div class="step"><span class="n">7</span><b>Reporter</b><span class="io">waiting</span></div>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h2>Live log</h2>
+          <div class="log">
+            <div>14:00:02 <b>Scout</b> Hacker News: 18 postings</div>
+            <div>14:00:05 <b>Scout</b> Remotive: 14 postings</div>
+            <div>14:00:09 <b>Scout</b> We Work Remotely: 12 postings</div>
+            <div>14:00:11 <b>Scout</b> Jobicy: 9 postings</div>
+            <div>14:00:13 <b>Dedupe</b> 32 already stored, 21 new</div>
+            <div>14:01:40 <b>Scorer</b> top lead: Northwind Labs (92)</div>
+            <div>14:03:10 <b>Contact finder</b> 12 public emails found so far</div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Agent health</h2>
+          <div class="shift"><span>Scout</span><span class="pill ok">OK</span></div>
+          <div class="shift"><span>Dedupe</span><span class="pill ok">OK</span></div>
+          <div class="shift"><span>Scorer</span><span class="pill ok">OK</span></div>
+          <div class="shift"><span>Contact finder</span><span class="pill info">Running</span></div>
+          <div class="shift"><span>Drafter</span><span class="pill warn">Idle</span></div>
+          <div class="shift"><span>Compliance gate</span><span class="pill warn">Idle</span></div>
+          <div class="shift"><span>Reporter</span><span class="pill warn">Idle</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEADS -->
+    <section class="screen" id="leads">
+      <h1>Leads</h1>
+      <p class="sub">Everything the agents found. Sorted by score.</p>
+      <div class="card">
+        <table>
+          <tr><th>Company</th><th>Need</th><th>Source</th><th>Found</th><th>Score</th><th>Status</th></tr>
+          <tr><td>Northwind Labs</td><td>.NET API contractor</td><td>Hacker News</td><td>14:00</td><td class="score">92</td><td><span class="pill info">Draft ready</span></td></tr>
+          <tr><td>Brightpath</td><td>React dashboard build</td><td>Remotive</td><td>14:00</td><td class="score">87</td><td><span class="pill info">Draft ready</span></td></tr>
+          <tr><td>Kestrel Pay</td><td>Cloud migration</td><td>We Work Remotely</td><td>14:00</td><td class="score">81</td><td><span class="pill warn">No email found</span></td></tr>
+          <tr><td>Aldermoor</td><td>Backend team augmentation</td><td>Jobicy</td><td>12:00</td><td class="score">74</td><td><span class="pill ok">Sent</span></td></tr>
+          <tr><td>Fernhill</td><td>Data pipeline help</td><td>Hacker News</td><td>12:00</td><td class="score">68</td><td><span class="pill bad">Opted out</span></td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- CAMPAIGNS -->
+    <section class="screen" id="camp">
+      <h1>Campaigns</h1>
+      <p class="sub">Drafts are written by agents. A person approves before anything is sent.</p>
+      <div class="card">
+        <h2>Waiting for approval (9)</h2>
+        <table>
+          <tr><th>To</th><th>Subject</th><th>Compliance</th><th></th></tr>
+          <tr><td>Northwind Labs</td><td>Your .NET API project</td><td><span class="pill ok">Passed</span></td><td><button class="act">Review</button></td></tr>
+          <tr><td>Brightpath</td><td>React dashboard help</td><td><span class="pill ok">Passed</span></td><td><button class="act">Review</button></td></tr>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+  const btns=document.querySelectorAll('nav button'), screens=document.querySelectorAll('.screen');
+  btns.forEach(b=>b.addEventListener('click',()=>{
+    btns.forEach(x=>x.classList.toggle('active',x===b));
+    screens.forEach(s=>s.classList.toggle('on',s.id===b.dataset.s));
+  }));
+</script>
+</body>
+</html>
