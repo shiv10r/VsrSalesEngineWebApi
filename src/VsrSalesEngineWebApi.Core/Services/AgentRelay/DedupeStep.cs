@@ -6,6 +6,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class DedupeStep : IRelayStep
 {
     private const string Agent = AgentIds.Dedupe;
+    public string AgentId => Agent;
 
     private readonly IOpportunityRepository _opportunities;
 
@@ -45,6 +46,6 @@ public class DedupeStep : IRelayStep
         await log.ResultAsync(Agent, $"{state.Leads.Count} new, {state.Duplicates} already stored.");
         await log.HandoffAsync(Agent, state.Leads.Count == 0
             ? "Nothing new to pass on."
-            : $"Handing {state.Leads.Count} new lead(s) to {AgentCatalog.NameOf(AgentIds.Scorer)} for scoring.");
+            : $"Handing {state.Leads.Count} new lead(s) to {state.NameOf(AgentIds.Scorer)} for scoring.");
     }
 }
