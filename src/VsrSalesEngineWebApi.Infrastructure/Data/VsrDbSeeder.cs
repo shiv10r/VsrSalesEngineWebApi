@@ -1,10 +1,11 @@
+using VsrSalesEngineWebApi.Core.Security;
 using VsrSalesEngineWebApi.Core.Entities;
 
 namespace VsrSalesEngineWebApi.Infrastructure.Data;
 
 public static class VsrDbSeeder
 {
-    public static async Task SeedAsync(VsrDbContext context, CancellationToken cancellationToken = default)
+    public static async Task SeedAsync(VsrDbContext context, UserSeedOptions? users = null, CancellationToken cancellationToken = default)
     {
         if (!await Any(context.Opportunities, cancellationToken))
         {
@@ -223,12 +224,7 @@ public static class VsrDbSeeder
                 new SuppressionRecord { Id = "SUP-003", Target = "blocked-competitor.example", Type = "Domain", Reason = "BlockedByPolicy", Source = "AdminAction", CreatedBy = "System", CreatedAtUtc = DateTime.UtcNow.AddDays(-20) });
         }
 
-        if (!await Any(context.Users, cancellationToken))
-        {
-            context.Users.AddRange(
-                new User { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Email = "admin@vsrsalesengine.com", PasswordHash = "Admin123!", FullName = "VSR Admin", Role = "Admin", IsGuest = false, CreatedAtUtc = DateTime.UtcNow },
-                new User { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Email = "sales@vsrsalesengine.com", PasswordHash = "Sales123!", FullName = "VSR Sales Team", Role = "SalesMember", IsGuest = false, CreatedAtUtc = DateTime.UtcNow });
-        }
+        await SeedUsersAsync(context, users ?? UserSeedOptions.None, cancellationToken);
 
         if (!await Any(context.Executions, cancellationToken))
         {
@@ -241,6 +237,41 @@ public static class VsrDbSeeder
         }
 
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    // Demo passwords are hashed once per process (PBKDF2 is deliberately slow); every user still gets its own salt.
+    private static readonly Lazy<(string Admin, string Sales)> DemoHashes = new(() =>
+        (PasswordHasher.Hash("Admin123!"), PasswordHasher.Hash("Sales123!")));
+
+    private static async Task SeedUsersAsync(VsrDbContext context, UserSeedOptions options, CancellationToken cancellationToken)
+    {
+        if (options.DemoUsers)
+        {
+            // Development only. These logins are public in the repository.
+            if (await Any(context.Users, cancellationToken)) return;
+
+            context.Users.AddRange(
+                new User { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Email = "admin@vsrsalesengine.com", PasswordHash = DemoHashes.Value.Admin, FullName = "VSR Admin", Role = "Admin", IsGuest = false, CreatedAtUtc = DateTime.UtcNow },
+                new User { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Email = "sales@vsrsalesengine.com", PasswordHash = DemoHashes.Value.Sales, FullName = "VSR Sales Team", Role = "SalesMember", IsGuest = false, CreatedAtUtc = DateTime.UtcNow });
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.AdminEmail) || string.IsNullOrEmpty(options.AdminPassword)) return;
+
+        var email = options.AdminEmail.Trim().ToLowerInvariant();
+        var exists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(
+            context.Users, u => u.Email.ToLower() == email, cancellationToken);
+        if (exists) return;
+
+        context.Users.Add(new User
+        {
+            Email = email,
+            PasswordHash = PasswordHasher.Hash(options.AdminPassword),
+            FullName = "Administrator",
+            Role = "Admin",
+            IsGuest = false,
+            CreatedAtUtc = DateTime.UtcNow
+        });
     }
 
     private static async Task<bool> Any<T>(Microsoft.EntityFrameworkCore.DbSet<T> set, CancellationToken cancellationToken) where T : class

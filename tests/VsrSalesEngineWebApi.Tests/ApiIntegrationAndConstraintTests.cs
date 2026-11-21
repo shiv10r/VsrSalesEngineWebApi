@@ -38,7 +38,7 @@ public class ApiIntegrationAndConstraintTests
             {
                 Id = Guid.NewGuid(),
                 Email = "sales@vsr.local",
-                PasswordHash = "ValidSecret123!",
+                PasswordHash = PasswordHasher.Hash("ValidSecret123!"),
                 FullName = "VSR Sales",
                 Role = "SalesMember",
                 IsGuest = false

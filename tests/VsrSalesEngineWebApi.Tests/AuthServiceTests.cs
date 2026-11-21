@@ -32,7 +32,7 @@ public class AuthServiceTests
         {
             Id = Guid.NewGuid(),
             Email = "sales@vsr.local",
-            PasswordHash = "ValidSecret123!",
+            PasswordHash = PasswordHasher.Hash("ValidSecret123!"),
             FullName = "VSR Sales",
             Role = "SalesMember",
             IsGuest = false
@@ -63,7 +63,7 @@ public class AuthServiceTests
         {
             Id = Guid.NewGuid(),
             Email = "sales@vsr.local",
-            PasswordHash = "CorrectPassword!",
+            PasswordHash = PasswordHasher.Hash("CorrectPassword!"),
             FullName = "VSR Sales",
             Role = "SalesMember"
         };
