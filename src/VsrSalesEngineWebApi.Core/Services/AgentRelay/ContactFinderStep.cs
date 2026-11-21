@@ -7,6 +7,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class ContactFinderStep : IRelayStep
 {
     private const string Agent = AgentIds.ContactFinder;
+    public string AgentId => Agent;
 
     private static readonly HashSet<string> RoleMailboxes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -37,7 +38,7 @@ public class ContactFinderStep : IRelayStep
         foreach (var lead in state.Leads)
         {
             var opportunity = lead.Opportunity;
-            var strong = lead.Score > state.Options.DraftThreshold;
+            var strong = lead.Score > state.DraftThreshold;
 
             if (lead.Email == null)
             {
@@ -69,7 +70,7 @@ public class ContactFinderStep : IRelayStep
             $"{withEmail} of {state.Leads.Count} lead(s) have a public email. {quietNoEmail} lower-scoring lead(s) have none and stay on the list for manual review.");
         await log.HandoffAsync(Agent, state.StrongLeads == 0
             ? "No lead scored high enough for a draft."
-            : $"Handing {state.StrongLeads} strong lead(s) to {AgentCatalog.NameOf(AgentIds.Drafter)} for drafts.");
+            : $"Handing {state.StrongLeads} strong lead(s) to {state.NameOf(AgentIds.Drafter)} for drafts.");
     }
 
     private async Task<bool> EnsureContactAsync(RelayLead lead, CancellationToken ct)

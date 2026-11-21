@@ -7,6 +7,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class DrafterStep : IRelayStep
 {
     private const string Agent = AgentIds.Drafter;
+    public string AgentId => Agent;
 
     private readonly IOutreachDraftService _drafts;
 
@@ -18,16 +19,16 @@ public class DrafterStep : IRelayStep
     public async Task RunAsync(RelayState state, CancellationToken cancellationToken)
     {
         var log = state.Log;
-        var strong = state.Leads.Where(l => l.Score > state.Options.DraftThreshold).ToList();
+        var strong = state.Leads.Where(l => l.Score > state.DraftThreshold).ToList();
 
         if (strong.Count == 0)
         {
-            await log.ResultAsync(Agent, $"No lead scored above {state.Options.DraftThreshold}, so I have nothing to draft.");
+            await log.ResultAsync(Agent, $"No lead scored above {state.DraftThreshold}, so I have nothing to draft.");
             return;
         }
 
         await log.ThoughtAsync(Agent,
-            $"Drafting for {strong.Count} lead(s) scoring above {state.Options.DraftThreshold}. Drafts use only facts from the posting. Rule-based templates, no AI writing.");
+            $"Drafting for {strong.Count} lead(s) scoring above {state.DraftThreshold}. Drafts use only facts from the posting. Rule-based templates, no AI writing.");
 
         foreach (var lead in strong)
         {
@@ -63,6 +64,6 @@ public class DrafterStep : IRelayStep
         }
 
         var drafted = strong.Count(l => l.Draft != null);
-        await log.HandoffAsync(Agent, $"Handing {drafted} draft(s) to {AgentCatalog.NameOf(AgentIds.Compliance)} for a compliance check.");
+        await log.HandoffAsync(Agent, $"Handing {drafted} draft(s) to {state.NameOf(AgentIds.Compliance)} for a compliance check.");
     }
 }

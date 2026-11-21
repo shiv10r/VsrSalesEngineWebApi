@@ -46,6 +46,20 @@ public static class AgentCatalog
         return index < 0 ? agentId : All[index].Name;
     }
 
+    /// <summary>Agents the relay cannot run without. They cannot be switched off (Dedupe: switching it off would save every posting again each run).</summary>
+    public static bool IsRequired(string agentId) =>
+        agentId is AgentIds.Scout or AgentIds.Dedupe or AgentIds.Reporter;
+
+    /// <summary>The plain job label that starts each role text, for example "Scout".</summary>
+    public static string JobLabel(string agentId)
+    {
+        var index = IndexOf(agentId);
+        if (index < 0) return agentId;
+        var role = All[index].Role;
+        var dash = role.IndexOf(" - ", StringComparison.Ordinal);
+        return dash < 0 ? role : role[..dash];
+    }
+
     public static int IndexOf(string agentId)
     {
         for (var i = 0; i < All.Count; i++)

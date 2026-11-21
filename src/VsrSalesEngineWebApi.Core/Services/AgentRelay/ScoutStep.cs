@@ -7,6 +7,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class ScoutStep : IRelayStep
 {
     private const string Agent = AgentIds.Scout;
+    public string AgentId => Agent;
 
     private readonly ILiveJobFeedService? _feeds;
     private readonly ISourceRegistryRepository _sources;
@@ -37,7 +38,7 @@ public class ScoutStep : IRelayStep
         }
 
         await log.HandoffAsync(Agent,
-            $"Read {state.PostingsRead} posting(s) from {state.SourcesReached} source(s). Handing them to {AgentCatalog.NameOf(AgentIds.Filter)}.");
+            $"Read {state.PostingsRead} posting(s) from {state.SourcesReached} source(s). Handing them to {state.NameOf(AgentIds.Filter)}.");
     }
 
     private async Task ReadSourceAsync(
@@ -54,7 +55,7 @@ public class ScoutStep : IRelayStep
             return;
         }
 
-        if (_feeds == null || !IsLiveSource(name))
+        if (_feeds == null || !LiveSourceNames.IsLive(name))
         {
             await log.WarningAsync(Agent, $"Skipping {name}: there is no live reader for it yet, and I won't make postings up.");
             state.SourcesFailed++;
@@ -86,10 +87,5 @@ public class ScoutStep : IRelayStep
             await log.WarningAsync(Agent, $"Could not read {name}: {KeywordText.Short(ex.Message, 120)}. Moving on.");
         }
     }
-
-    private static bool IsLiveSource(string name) =>
-        name.Contains("Hacker", StringComparison.OrdinalIgnoreCase) ||
-        name.Contains("We Work", StringComparison.OrdinalIgnoreCase) ||
-        name.Contains("Remotive", StringComparison.OrdinalIgnoreCase) ||
-        name.Contains("Jobicy", StringComparison.OrdinalIgnoreCase);
 }
+

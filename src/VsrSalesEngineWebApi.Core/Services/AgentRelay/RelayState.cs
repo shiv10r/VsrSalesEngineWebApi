@@ -5,6 +5,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 
 public interface IRelayStep
 {
+    string AgentId { get; }
     Task RunAsync(RelayState state, CancellationToken cancellationToken);
 }
 
@@ -23,6 +24,13 @@ public class RelayState
     public RelayRequest Request { get; }
     public AgentLog Log { get; }
     public AgentRelayOptions Options { get; }
+
+    /// <summary>The owner's settings for this run: current agent names, which agents are off, draft threshold.</summary>
+    public AgentRuntimeSettings Runtime { get; set; } = AgentRuntimeSettings.Defaults(50);
+
+    public int DraftThreshold => Runtime.DraftThreshold;
+    public string NameOf(string agentId) => Runtime.NameOf(agentId);
+    public bool IsEnabled(string agentId) => Runtime.IsEnabled(agentId);
 
     public SearchProfile? Profile { get; set; }
     public IReadOnlyList<string> TargetKeywords { get; set; } = Array.Empty<string>();

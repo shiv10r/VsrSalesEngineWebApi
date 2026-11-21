@@ -98,6 +98,8 @@ builder.Services.AddSingleton(new AgentRelayOptions
 });
 builder.Services.AddScoped<IAgentRunRepository, AgentRunRepository>();
 builder.Services.AddScoped<IAgentRelay, AgentRelayService>();
+builder.Services.AddScoped<IAgentSettingsRepository, AgentSettingsRepository>();
+builder.Services.AddScoped<IAgentSettingsService, AgentSettingsService>();
 builder.Services.AddScoped<IAgentActivityService, AgentActivityService>();
 builder.Services.AddScoped<ILeadHeatmapService, LeadHeatmapService>();
 builder.Services.AddSingleton<IManualRunLauncher, ManualRunLauncher>();
