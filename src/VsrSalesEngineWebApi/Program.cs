@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using VsrSalesEngineWebApi.Core.Interfaces;
 using VsrSalesEngineWebApi.Core.Security;
 using VsrSalesEngineWebApi.Core.Services;
+using VsrSalesEngineWebApi.Core.Services.AgentRelay;
 using VsrSalesEngineWebApi.Infrastructure.Data;
 using VsrSalesEngineWebApi.Infrastructure.Repositories;
 using VsrSalesEngineWebApi.Infrastructure.Services;
@@ -88,6 +89,17 @@ builder.Services.AddScoped<IOutreachSender, OutreachSenderService>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 builder.Services.AddScoped<IScheduleExecutionService, ScheduleExecutionService>();
 builder.Services.AddScoped<IDueScheduleRunner, DueScheduleRunner>();
+
+// Agent relay: eight agents write a persisted, human-readable activity log while they work.
+builder.Services.AddSingleton(new AgentRelayOptions
+{
+    StepPauseMs = builder.Configuration.GetValue("Agents:StepPauseMs", 300), // UI pacing only
+    DraftThreshold = builder.Configuration.GetValue("Agents:DraftThreshold", 50)
+});
+builder.Services.AddScoped<IAgentRunRepository, AgentRunRepository>();
+builder.Services.AddScoped<IAgentRelay, AgentRelayService>();
+builder.Services.AddScoped<IAgentActivityService, AgentActivityService>();
+builder.Services.AddSingleton<IManualRunLauncher, ManualRunLauncher>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 
 // LLM & AI Services (Gemini as default provider)
