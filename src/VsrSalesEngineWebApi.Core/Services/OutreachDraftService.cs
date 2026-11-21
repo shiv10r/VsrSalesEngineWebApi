@@ -2,30 +2,13 @@ using System.Text.RegularExpressions;
 using VsrSalesEngineWebApi.Core.DTOs;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using VsrSalesEngineWebApi.Core.Services.Drafting;
 
 namespace VsrSalesEngineWebApi.Core.Services;
 
 public class OutreachDraftService : IOutreachDraftService
 {
     private readonly IOutreachTemplateRepository _templateRepository;
-
-    private static readonly string[] ProhibitedClaimsList = new[]
-    {
-        "100% guarantee",
-        "guarantee 100%",
-        "guaranteed results",
-        "exclusive partner",
-        "exclusive partnership",
-        "certified government contractor",
-        "official partner of your company",
-        "we built your current system",
-        "we built your existing",
-        "we created your platform",
-        "proprietary access to your data",
-        "internal security backdoor",
-        "zero risk",
-        "no risk"
-    };
 
     private const string DefaultServiceProposition = "cloud-native migration, enterprise API modernization, and scalable full-stack engineering";
     private const string DefaultSenderName = "VSR Outreach Lead";
@@ -65,7 +48,7 @@ public class OutreachDraftService : IOutreachDraftService
             BodyTemplate = dto.BodyTemplate.Trim(),
             ServiceProposition = string.IsNullOrWhiteSpace(dto.ServiceProposition) ? DefaultServiceProposition : dto.ServiceProposition.Trim(),
             JurisdictionPolicy = string.IsNullOrWhiteSpace(dto.JurisdictionPolicy) ? "US-CANSPAM" : dto.JurisdictionPolicy.Trim(),
-            FooterTemplate = string.IsNullOrWhiteSpace(dto.FooterTemplate) ? GetDefaultFooter(dto.JurisdictionPolicy ?? "US-CANSPAM") : dto.FooterTemplate.Trim(),
+            FooterTemplate = string.IsNullOrWhiteSpace(dto.FooterTemplate) ? DraftText.DefaultFooter(dto.JurisdictionPolicy ?? "US-CANSPAM") : dto.FooterTemplate.Trim(),
             IsActive = true,
             CreatedBy = user,
             CreatedAtUtc = DateTime.UtcNow,
@@ -125,7 +108,7 @@ public class OutreachDraftService : IOutreachDraftService
         var senderTitle = string.IsNullOrWhiteSpace(request.SenderTitle) ? DefaultSenderTitle : request.SenderTitle;
         var senderCompany = string.IsNullOrWhiteSpace(request.SenderCompany) ? DefaultSenderCompany : request.SenderCompany;
 
-        var footer = GetDefaultFooter(jurisdiction)
+        var footer = DraftText.DefaultFooter(jurisdiction)
             .Replace("{{OptOutUrl}}", DefaultOptOutUrl)
             .Replace("{{SenderCompany}}", senderCompany);
 
@@ -143,7 +126,7 @@ public class OutreachDraftService : IOutreachDraftService
             { "Role", request.Role?.Trim() ?? "team member" },
             { "OpportunityTitle", request.OpportunityTitle?.Trim() ?? "modernization project" },
             { "RoleOrOpportunity", !string.IsNullOrWhiteSpace(request.OpportunityTitle) ? request.OpportunityTitle.Trim() : (!string.IsNullOrWhiteSpace(request.Role) ? request.Role.Trim() : "technology initiatives") },
-            { "SourceContext", SanitizeSourceSnippet(request.SourceEvidenceSnippet) },
+            { "SourceContext", DraftText.SanitizeSourceSnippet(request.SourceEvidenceSnippet) },
             { "ServiceProposition", serviceProposition },
             { "SenderName", senderName },
             { "SenderTitle", senderTitle },
@@ -176,70 +159,7 @@ public class OutreachDraftService : IOutreachDraftService
     }
 
     public DraftValidationResult ValidateDraft(DraftContentValidationRequest request)
-    {
-        var missingVars = new List<string>();
-        var prohibitedClaims = new List<string>();
-        var warnings = new List<string>();
-
-        // 1. Check for missing/unsubstituted template tags {{Variable}}
-        var regex = new Regex(@"\{\{([A-Za-z0-9_]+)\}\}", RegexOptions.Compiled);
-        foreach (Match match in regex.Matches(request.Subject + " " + request.Body))
-        {
-            var varName = match.Groups[1].Value;
-            if (!missingVars.Contains(varName))
-            {
-                missingVars.Add(varName);
-            }
-        }
-
-        // 2. Check for prohibited / fabricated claims
-        var fullText = (request.Subject + " " + request.Body).ToLowerInvariant();
-        foreach (var claim in ProhibitedClaimsList)
-        {
-            if (fullText.Contains(claim.ToLowerInvariant()))
-            {
-                prohibitedClaims.Add($"Contains prohibited claim: '{claim}'");
-            }
-        }
-
-        // 3. Excessive repetition check
-        var words = Regex.Split(fullText, @"\W+").Where(w => w.Length > 4).ToList();
-        var counts = words.GroupBy(w => w).Where(g => g.Count() >= 5).Select(g => g.Key).ToList();
-        if (counts.Any())
-        {
-            warnings.Add($"Excessive word repetition detected for: {string.Join(", ", counts)}");
-        }
-
-        // 4. Compliance footer checks
-        var hasUnsub = fullText.Contains("unsubscribe") || fullText.Contains("opt-out") || fullText.Contains("opt out") || fullText.Contains("stop");
-        var hasAddress = fullText.Contains("100 enterprise way") || fullText.Contains("suite") || fullText.Contains("street") || fullText.Contains("austin");
-        var hasSenderIdentity = fullText.Contains("vsr technologies") || fullText.Contains("vsr");
-
-        if (!hasUnsub)
-        {
-            warnings.Add("Missing required opt-out/unsubscribe instructions in footer.");
-        }
-        if (!hasAddress)
-        {
-            warnings.Add("Missing required physical business mailing address in footer.");
-        }
-        if (!hasSenderIdentity)
-        {
-            warnings.Add("Missing clear sender commercial identity.");
-        }
-
-        var isValid = missingVars.Count == 0 && prohibitedClaims.Count == 0 && hasUnsub && hasAddress;
-
-        return new DraftValidationResult(
-            IsValid: isValid,
-            MissingVariables: missingVars,
-            ProhibitedClaims: prohibitedClaims,
-            Warnings: warnings,
-            HasUnsubscribeMechanism: hasUnsub,
-            HasPhysicalAddress: hasAddress,
-            HasSenderIdentity: hasSenderIdentity
-        );
-    }
+        => DraftValidator.Validate(request);
 
     private static string ReplaceVariables(string text, IReadOnlyDictionary<string, string> variables)
     {
@@ -249,19 +169,6 @@ public class OutreachDraftService : IOutreachDraftService
             result = result.Replace("{{" + key + "}}", value, StringComparison.OrdinalIgnoreCase);
         }
         return result;
-    }
-
-    private static string GetDefaultFooter(string jurisdiction)
-    {
-        return jurisdiction.ToUpperInvariant() switch
-        {
-            "EU-GDPR" =>
-                "You are receiving this B2B communication on the basis of legitimate interest related to your public professional role. To exercise your right to object or opt out at any time, reply 'UNSUBSCRIBE' or visit {{OptOutUrl}}.\nController: {{SenderCompany}}, 100 Enterprise Way, Suite 400, Austin TX 78701.",
-            "UK-PECR" =>
-                "This message is intended for corporate subscribers under UK PECR regulation. If you wish to opt out of further business communications, reply 'STOP' or visit {{OptOutUrl}}.\n{{SenderCompany}}, 100 Enterprise Way, Suite 400, Austin TX 78701.",
-            _ =>
-                "To opt out of future updates, reply 'UNSUBSCRIBE' or visit {{OptOutUrl}}.\n{{SenderCompany}}, 100 Enterprise Way, Suite 400, Austin TX 78701."
-        };
     }
 
     private static OutreachTemplate GetDefaultTemplate()
@@ -275,33 +182,10 @@ public class OutreachDraftService : IOutreachDraftService
             BodyTemplate = "Hi {{ContactName}},\n\nI noticed {{CompanyName}} is exploring {{RoleOrOpportunity}} (via {{SourceContext}}).\n\nAt {{SenderCompany}}, we specialize in {{ServiceProposition}}.\n\nWould you be open to a 10-minute introductory conversation next week?\n\nBest regards,\n{{SenderName}}\n{{SenderTitle}}\n{{SenderCompany}}\n\n{{JurisdictionFooter}}",
             ServiceProposition = DefaultServiceProposition,
             JurisdictionPolicy = "US-CANSPAM",
-            FooterTemplate = GetDefaultFooter("US-CANSPAM"),
+            FooterTemplate = DraftText.DefaultFooter("US-CANSPAM"),
             IsActive = true,
             CreatedBy = "System"
         };
-    }
-
-    private static string SanitizeSourceSnippet(string? snippet)
-    {
-        if (string.IsNullOrWhiteSpace(snippet)) return "your public technical requirements";
-        var sanitized = snippet.Trim();
-        string[] injectionPatterns = {
-            "ignore all previous instructions",
-            "ignore previous instructions",
-            "output the api",
-            "system prompt",
-            "output secret"
-        };
-
-        foreach (var pattern in injectionPatterns)
-        {
-            if (sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                return "your public technical requirements";
-            }
-        }
-
-        return sanitized;
     }
 
     private static OutreachTemplateDto ToDto(OutreachTemplate t) => new(
