@@ -13,7 +13,9 @@ public class AgentRelayService : IAgentRelay
     private readonly ISourceRegistryRepository _sources;
     private readonly AgentRelayOptions _options;
     private readonly IReadOnlyList<IRelayStep> _steps;
+    private readonly ScorerStep _scorer;
     private readonly ReporterStep _reporter;
+    private readonly IAgentSettingsService? _settings;
 
     public AgentRelayService(
         IAgentRunRepository runs,
@@ -24,19 +26,22 @@ public class AgentRelayService : IAgentRelay
         IOutreachDraftService drafts,
         ISuppressionRepository suppressions,
         AgentRelayOptions options,
-        ILiveJobFeedService? feeds = null)
+        ILiveJobFeedService? feeds = null,
+        IAgentSettingsService? settings = null)
     {
         _runs = runs;
         _profiles = profiles;
         _sources = sources;
         _options = options;
+        _settings = settings;
+        _scorer = new ScorerStep(opportunities);
 
         _steps = new IRelayStep[]
         {
             new ScoutStep(feeds, sources),
             new FilterStep(),
             new DedupeStep(opportunities),
-            new ScorerStep(opportunities),
+            _scorer,
             new ContactFinderStep(contacts),
             new DrafterStep(drafts),
             new ComplianceStep(drafts, suppressions)
@@ -74,11 +79,20 @@ public class AgentRelayService : IAgentRelay
 
         try
         {
+            state.Runtime = _settings != null
+                ? await _settings.GetRuntimeAsync()
+                : AgentRuntimeSettings.Defaults(_options.DraftThreshold);
             await LoadProfileAsync(state, cancellationToken);
 
             foreach (var step in _steps)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (!state.IsEnabled(step.AgentId))
+                {
+                    await SkipSwitchedOffAsync(state, step, cancellationToken);
+                    continue;
+                }
+
                 await step.RunAsync(state, cancellationToken);
             }
 
@@ -126,6 +140,22 @@ public class AgentRelayService : IAgentRelay
 
         var profile = (await _profiles.GetAllAsync()).FirstOrDefault(p => p.IsActive);
         return new RelayRequest("MANUAL", $"Manual run by {user}", profile?.Id, live, 50, "Manual");
+    }
+
+    /// <summary>One event says the agent is off and what that means for this run.</summary>
+    private async Task SkipSwitchedOffAsync(RelayState state, IRelayStep step, CancellationToken ct)
+    {
+        var effect = step.AgentId switch
+        {
+            AgentIds.Filter => "Keeping every posting.",
+            AgentIds.Scorer => $"Saved {await _scorer.SaveUnscoredAsync(state, ct)} lead(s) without scores, so none will be drafted.",
+            AgentIds.ContactFinder => "No contact search this run.",
+            AgentIds.Drafter => "No drafts this run.",
+            AgentIds.Compliance => "Nothing to check.",
+            _ => string.Empty
+        };
+
+        await state.Log.ThoughtAsync(step.AgentId, $"{state.NameOf(step.AgentId)} is switched off - skipping this step. {effect}".Trim());
     }
 
     private async Task LoadProfileAsync(RelayState state, CancellationToken ct)

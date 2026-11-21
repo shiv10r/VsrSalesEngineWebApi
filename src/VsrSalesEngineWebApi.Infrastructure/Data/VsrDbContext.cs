@@ -23,6 +23,7 @@ public class VsrDbContext : DbContext
     public DbSet<SourceFailureCount> SourceFailureCounts => Set<SourceFailureCount>();
     public DbSet<AgentRun> AgentRuns => Set<AgentRun>();
     public DbSet<AgentEvent> AgentEvents => Set<AgentEvent>();
+    public DbSet<AgentSettings> AgentSettings => Set<AgentSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +50,11 @@ public class VsrDbContext : DbContext
         modelBuilder.Entity<Contact>(e => e.HasKey(c => c.Id));
 
         modelBuilder.Entity<AgentRun>(e => e.HasKey(r => r.Id));
+        modelBuilder.Entity<AgentSettings>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Id).ValueGeneratedNever();
+        });
         modelBuilder.Entity<AgentEvent>(e =>
         {
             e.HasKey(x => x.Id);

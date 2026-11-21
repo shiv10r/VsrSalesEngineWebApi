@@ -12,11 +12,13 @@ public class AgentActivityService : IAgentActivityService
 
     private readonly IAgentRunRepository _runs;
     private readonly IAutomationScheduleRepository _schedules;
+    private readonly IAgentSettingsService? _settings;
 
-    public AgentActivityService(IAgentRunRepository runs, IAutomationScheduleRepository schedules)
+    public AgentActivityService(IAgentRunRepository runs, IAutomationScheduleRepository schedules, IAgentSettingsService? settings = null)
     {
         _runs = runs;
         _schedules = schedules;
+        _settings = settings;
     }
 
     public async Task<AgentOverviewDto> GetOverviewAsync()
@@ -28,6 +30,7 @@ public class AgentActivityService : IAgentActivityService
         AgentEvent? latest = running == null ? null : await _runs.GetLatestEventAsync(running.Id);
         var currentIndex = latest == null ? -1 : AgentCatalog.IndexOf(latest.AgentId);
         var lastRunFailed = lastRun is { Status: "failed" };
+        var runtime = _settings != null ? await _settings.GetRuntimeAsync() : AgentRuntimeSettings.Defaults(50);
 
         var cards = AgentCatalog.All.Select((agent, index) =>
         {
@@ -35,7 +38,11 @@ public class AgentActivityService : IAgentActivityService
 
             var status = "idle";
             string? task = null;
-            if (running != null)
+            if (!runtime.IsEnabled(agent.Id))
+            {
+                task = "Switched off in settings.";
+            }
+            else if (running != null)
             {
                 if (index == currentIndex) { status = "working"; task = latest!.Message; }
                 else if (index > currentIndex) status = "waiting";
@@ -47,7 +54,7 @@ public class AgentActivityService : IAgentActivityService
             }
 
             return new AgentCardDto(
-                agent.Id, agent.Name, agent.Role, status, task, total?.LastAtUtc,
+                agent.Id, runtime.NameOf(agent.Id), agent.Role, status, task, total?.LastAtUtc,
                 new AgentLifetimeDto(total?.WithLead ?? 0, total?.Events ?? 0));
         }).ToList();
 

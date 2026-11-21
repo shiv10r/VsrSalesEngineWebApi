@@ -6,6 +6,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class ReporterStep : IRelayStep
 {
     private const string Agent = AgentIds.Reporter;
+    public string AgentId => Agent;
 
     private readonly IAgentRunRepository _runs;
 

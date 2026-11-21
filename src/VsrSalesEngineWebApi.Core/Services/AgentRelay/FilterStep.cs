@@ -4,6 +4,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class FilterStep : IRelayStep
 {
     private const string Agent = AgentIds.Filter;
+    public string AgentId => Agent;
 
     public async Task RunAsync(RelayState state, CancellationToken cancellationToken)
     {
@@ -12,7 +13,7 @@ public class FilterStep : IRelayStep
 
         if (incoming.Count == 0)
         {
-            await log.ResultAsync(Agent, $"Nothing to check: {AgentCatalog.NameOf(AgentIds.Scout)} brought no postings.");
+            await log.ResultAsync(Agent, $"Nothing to check: {state.NameOf(AgentIds.Scout)} brought no postings.");
             return;
         }
 
@@ -31,6 +32,6 @@ public class FilterStep : IRelayStep
         }
 
         await log.ResultAsync(Agent, $"Kept {state.Leads.Count} of {incoming.Count} posting(s); dropped {state.Rejected}.");
-        await log.HandoffAsync(Agent, $"Handing {state.Leads.Count} software posting(s) to {AgentCatalog.NameOf(AgentIds.Dedupe)}.");
+        await log.HandoffAsync(Agent, $"Handing {state.Leads.Count} software posting(s) to {state.NameOf(AgentIds.Dedupe)}.");
     }
 }

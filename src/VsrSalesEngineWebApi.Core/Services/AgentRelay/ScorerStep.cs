@@ -6,6 +6,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class ScorerStep : IRelayStep
 {
     private const string Agent = AgentIds.Scorer;
+    public string AgentId => Agent;
 
     private readonly IOpportunityRepository _opportunities;
 
@@ -38,7 +39,7 @@ public class ScorerStep : IRelayStep
 
             await _opportunities.AddAsync(lead.Opportunity, cancellationToken);
             state.NewLeads++;
-            if (result.Score > state.Options.DraftThreshold) state.StrongLeads++;
+            if (result.Score > state.DraftThreshold) state.StrongLeads++;
 
             var why = result.Reasons.Count == 0 ? "no scoring rule matched" : string.Join(", ", result.Reasons);
             await log.ResultAsync(Agent,
@@ -47,7 +48,19 @@ public class ScorerStep : IRelayStep
         }
 
         state.Leads.Sort((a, b) => b.Score.CompareTo(a.Score));
-        await log.ResultAsync(Agent, $"Saved {state.NewLeads} new lead(s). {state.StrongLeads} score above {state.Options.DraftThreshold}.");
-        await log.HandoffAsync(Agent, $"Handing {state.Leads.Count} scored lead(s) to {AgentCatalog.NameOf(AgentIds.ContactFinder)}.");
+        await log.ResultAsync(Agent, $"Saved {state.NewLeads} new lead(s). {state.StrongLeads} score above {state.DraftThreshold}.");
+        await log.HandoffAsync(Agent, $"Handing {state.Leads.Count} scored lead(s) to {state.NameOf(AgentIds.ContactFinder)}.");
+    }
+
+    /// <summary>Used when the owner switched the scorer off: leads are still saved, with no score, so none gets a draft.</summary>
+    public async Task<int> SaveUnscoredAsync(RelayState state, CancellationToken cancellationToken)
+    {
+        foreach (var lead in state.Leads)
+        {
+            await _opportunities.AddAsync(lead.Opportunity, cancellationToken);
+            state.NewLeads++;
+        }
+
+        return state.Leads.Count;
     }
 }

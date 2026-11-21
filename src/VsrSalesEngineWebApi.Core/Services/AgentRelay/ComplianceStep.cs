@@ -7,6 +7,7 @@ namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 public class ComplianceStep : IRelayStep
 {
     private const string Agent = AgentIds.Compliance;
+    public string AgentId => Agent;
 
     private readonly IOutreachDraftService _drafts;
     private readonly ISuppressionRepository _suppressions;
@@ -62,6 +63,6 @@ public class ComplianceStep : IRelayStep
                 lead.ToDto(includeScore: true, includeDraft: true));
         }
 
-        await log.HandoffAsync(Agent, $"{state.DraftsReady} draft(s) cleared. Handing over to {AgentCatalog.NameOf(AgentIds.Reporter)}.");
+        await log.HandoffAsync(Agent, $"{state.DraftsReady} draft(s) cleared. Handing over to {state.NameOf(AgentIds.Reporter)}.");
     }
 }
