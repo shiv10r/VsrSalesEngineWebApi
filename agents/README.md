@@ -5,7 +5,7 @@ They are installed in `.claude/agents/`, which is where Claude Code loads agents
 
 ## Rules every agent follows
 1. **Boundary:** work only inside `C:\Users\ADMIN\Codebase`. No external uploads (see `Codebase/AGENTS.md`).
-   Notion and other outside services are NOT allowed. Status goes in `docs/DAILY_STATUS.md`.
+   Notion and other outside services are NOT allowed. Status goes in the daily log at the bottom of `TASKS.md`.
 2. **Branches:** one new branch per PR group, named `feature/PR-NN-Txxx-<name>` (ticket IDs in the PR title),
    flow: PR into `develop` -> "Release PR-NN" PR from `develop` into `main`.
    Never commit to `develop` or `main` directly.
@@ -22,7 +22,7 @@ They are installed in `.claude/agents/`, which is where Claude Code loads agents
 5. **File size:** backend files 300 lines max, React components 250 lines max, one responsibility per file.
 6. **Backend shape:** Controller (thin) -> Service (rules) -> Repository (data). No data access in controllers.
 7. **Done means checked:** run build and tests and report the real output before marking a task done in `TASKS.md`.
-8. **Update `TASKS.md`** (counts too) and add the day's entry to `docs/DAILY_STATUS.md`.
+8. **Update `TASKS.md`** (counts too) and add the day's entry to the daily log at the bottom of it.
 
 ## Roster
 | Agent | Job |
