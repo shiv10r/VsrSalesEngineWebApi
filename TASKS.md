@@ -12,10 +12,10 @@ The only task tracker for both repos. Daily log at the bottom. **Last updated:**
 |---|---|
 | ✅ Done and checked | 22 |
 | 🟡 In progress or partly done | 8 |
-| ⬜ Not started | 11 |
-| ⛔ Blocked, dropped or removed (out of scope) | 10 |
+| ⬜ Not started | 21 |
+| ⛔ Blocked, dropped or removed (out of scope) | 11 |
 | ❔ Cannot tell | 1 |
-| **Total** | **52** |
+| **Total** | **63** |
 
 Key: ✅ checked working · 🟡 started or partly true · ⬜ not started · ⛔ blocked, dropped or removed ·
 ❔ not verifiable yet. Update the table whenever a row changes.
@@ -56,6 +56,13 @@ Key: ✅ checked working · 🟡 started or partly true · ⬜ not started · �
 | N36 | Logo in the sidebar, sign-in screen and browser tab | ⬜ | Needs your file at `VsrSalesEngineWebapp/public/logo.png`. |
 | N37 | Upgrade the vulnerable `System.Security.Cryptography.Xml` / `Pkcs` packages | ⬜ | Needs your approval (installs packages). They are design-time only, not shipped. |
 | N38 | Database migrations for a database that already has tables | ⬜ | Only if you keep a populated database. |
+| N39 | **Facebook / Instagram lead ads:** pull leads from your own Meta Lead Ad forms through the official Graph API into Local Leads | ⬜ | Needs G04. Leads come from your own ads, not from scraping. |
+| N40 | **Apollo.io:** search companies and people by district, industry and job title through Apollo's official API and save them as leads | ⬜ | Needs G05. Uses Apollo credits, so a daily cap applies. |
+| N41 | **LinkedIn Lead Gen Forms:** leads from your own LinkedIn ads through the official Marketing API | ⬜ | Needs G06. |
+| N42 | Lead refresh agent every 30 minutes (Maps Scout, Apollo, ad-form leads); schedules take minutes, not only hours | ⬜ | Extends N34. Cost kept in check by daily caps. |
+| N43 | Mobile-friendly pass: every page usable at phone width (tables scroll inside cards, single-column forms, 44 px touch targets), with a checklist | ⬜ | |
+| N44 | File-size rule enforced by tests (backend 300 lines, React 250); split `DiscoveryService.cs` (305) and the oversized test files | ⬜ | |
+| N45 | Remove duplicate leads across sources (the same business from Maps, Apollo and CSV) by normalised name plus district and by phone | ⬜ | |
 
 ## Needs you (go-live)
 
@@ -64,6 +71,9 @@ Key: ✅ checked working · 🟡 started or partly true · ⬜ not started · �
 | G01 | Supabase connection string as `ConnectionStrings__DefaultConnection` on Render (the live server still uses memory and loses data on restart) | ⬜ |
 | G02 | Vercel: set `VITE_API_BASE_URL` to `https://vsrsalesenginewebapi.onrender.com` and redeploy | ⬜ |
 | G03 | Google Cloud: enable Places API (New), create a restricted key, set a budget alert, set `GooglePlaces__ApiKey` on Render | ⬜ |
+| G04 | Meta: create an app, connect your Page, get a page access token with the leads permission (for N39) | ⬜ |
+| G05 | Apollo.io: an API key from your plan (for N40) | ⬜ |
+| G06 | LinkedIn: a developer app with Lead Sync access for your ad account (for N41) | ⬜ |
 
 ## Dropped or removed (out of scope)
 
@@ -73,7 +83,8 @@ Key: ✅ checked working · 🟡 started or partly true · ⬜ not started · �
 | X02 | LinkedIn daily-post agent | Not lead generation. |
 | X03 | Scraping Facebook, Instagram, YouTube, Google Maps, Justdial | Forbidden by their terms and risks your accounts. The official Places API and your own lists are used instead. |
 | X04 | Automatic LinkedIn connection requests and messages | LinkedIn forbids it. Manual handoff links only. |
-| X05 | Publishing to Notion | `Codebase/AGENTS.md` forbids outside services. Import `docs/ARCHITECTURE.md` into Notion yourself. |
+| X05 | Publishing to Notion | `Codebase/AGENTS.md` forbids outside services, with no approval exception. Import `docs/ARCHITECTURE.md` into Notion yourself. |
+| X06 | Scraping LinkedIn data every 30 minutes | Forbidden by LinkedIn's terms and gets accounts banned. Replaced by N41 (your own lead forms) and N40 (Apollo's official API). |
 
 ## Earlier plan (T001–T070, PR-00 to PR-21), checked against the code on 2026-11-22
 
@@ -101,6 +112,25 @@ Key: ✅ checked working · 🟡 started or partly true · ⬜ not started · �
 | PR-19 | Test depth, fixtures | 🟡 | 477 backend and 316 frontend tests; some were network-dependent or only asserted literals (being fixed in N29) |
 | PR-20 | Browser E2E, accessibility, SSRF/XSS | 🟡 | SSRF protection is real and tested; there is no browser E2E |
 | PR-21 | Deployment, runbook | 🟡 | Backend is live on Render and the frontend on Vercel; no database yet (G01) |
+
+## Working rules (from the owner's notes, 2026-11-22)
+
+- Launch agents only when they speed up real work; keep token use low; always check correctness with review agents.
+- Genuine channels only: Google Maps (official Places API), Meta lead ads, Apollo.io, LinkedIn lead forms, local lists.
+- Everything mobile friendly. One file must not hold huge amounts of code (backend 300 lines, React 250).
+- When a change is finished, raise the PR and merge it once checks pass (standing auto-merge rule).
+
+<details><summary>Owner's notes as written (kept verbatim)</summary>
+
+> Dont launch unnecessary agents in vs code while working but check with review agents always whether its correct or not, use less token.
+> Launch the agents when required to fastpace the development activity.
+> The sole purpose of this portal is lead generation: design, refactor, delete, update, consolidate, add, remove, redesign the application in order to meet it.
+> Dont mention rubbish portals, keep genuine setup like google map, facebook instagram ads, local channel etc, apollo.io, designated leads generator li...
+> Run the agent every 30 min to fetch latest linkedin data via scrapper by the key words and other things, remove duplicate, proceed with the changes. It should be mobile friendly.
+> Restructure the code base: one file should not have huge lines of code base, make it a rule. Once all done raise and merge the PR.
+> Publish the design architecture at notion, you have notion mcp, I am approving this.
+
+</details>
 
 ## Pull requests merged into `develop`
 
