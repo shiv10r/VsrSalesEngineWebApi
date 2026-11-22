@@ -8,6 +8,9 @@ public class AgentRelayOptions
     /// </summary>
     public int StepPauseMs { get; set; }
 
+    /// <summary>At most this many company websites are read per run (the strongest leads first).</summary>
+    public int MaxSiteLookups { get; set; } = 10;
+
     /// <summary>Leads scoring above this get a draft.</summary>
     public int DraftThreshold { get; set; } = 50;
 }

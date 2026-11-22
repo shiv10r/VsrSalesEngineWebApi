@@ -14,6 +14,9 @@ public class Contact
     public string Status { get; set; } = "Not contacted"; // Not contacted, Replied, Follow-up due, Do not contact, Qualified
     public string QualificationStatus { get; set; } = "Unverified"; // Unverified, Verified, BlockedByPolicy, OptedOut
     public bool IsRoleAccount { get; set; } = false;
+
+    /// <summary>How this person relates to the post: poster, hiring, decision-maker, engineering or mentioned. Null when unknown.</summary>
+    public string? RelationToPost { get; set; }
     public string? Notes { get; set; }
     public string CreatedBy { get; set; } = "Sales Member";
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

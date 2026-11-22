@@ -15,7 +15,8 @@ public record ContactDto(
     string? Notes,
     string CreatedBy,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc
+    DateTime UpdatedAtUtc,
+    string? RelationToPost = null
 );
 
 public record CreateContactDto(

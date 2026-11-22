@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using VsrSalesEngineWebApi.Core.Services.AgentRelay.People;
 using static VsrSalesEngineWebApi.Infrastructure.Services.LiveFeeds.FeedText;
 
 namespace VsrSalesEngineWebApi.Infrastructure.Services.LiveFeeds;
@@ -93,6 +94,8 @@ internal sealed class HackerNewsFeed
 
                 var objectId = comment.TryGetProperty("objectID", out var ob) ? ob.GetString() : Guid.NewGuid().ToString("N")[..8];
                 var storyUrl = $"https://news.ycombinator.com/item?id={objectId}";
+                var author = comment.TryGetProperty("author", out var authorElement) ? authorElement.GetString() : null;
+                var posterHandle = string.IsNullOrWhiteSpace(author) ? null : author.Trim();
 
                 var opp = new Opportunity
                 {
@@ -109,6 +112,10 @@ internal sealed class HackerNewsFeed
                     VendorRequirementNotes = contactEmail != null ? $"Direct Founder / Hiring Email: {contactEmail}" : "Apply via Hacker News comment thread",
                     SourceUrl = storyUrl,
                     EvidenceSnippet = text.Length > 240 ? text[..240] + "..." : text,
+                    PosterHandle = posterHandle,
+                    PosterProfileUrl = posterHandle == null ? null : $"https://news.ycombinator.com/user?id={Uri.EscapeDataString(posterHandle)}",
+                    PostingText = text.Length > 4000 ? text[..4000] : text,
+                    CompanyUrl = CompanySiteLocator.FromText(text)?.ToString(),
                     DeduplicationKey = $"{company.ToLowerInvariant()}|{role.ToLowerInvariant()}",
                     RetrievedAtUtc = DateTime.UtcNow,
                     UpdatedAtUtc = DateTime.UtcNow,
@@ -137,6 +144,7 @@ internal sealed class HackerNewsFeed
                         ChannelBasis = "ExplicitBusinessContact",
                         Status = "Not contacted",
                         QualificationStatus = "Verified",
+                        RelationToPost = "poster",
                         Notes = $"Extracted from live Hacker News hiring post. Linked to opportunity {opp.Id}",
                         CreatedAtUtc = DateTime.UtcNow,
                         UpdatedAtUtc = DateTime.UtcNow

@@ -1,24 +1,26 @@
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using VsrSalesEngineWebApi.Core.Services.AgentRelay.People;
 
 namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 
-/// <summary>Step 5: records public contact emails found inside postings. LinkedIn is never automated.</summary>
+/// <summary>
+/// Step 5: records public contact emails found inside postings, then looks for people connected to each post
+/// (the poster, anyone named in it, and recruiters, engineers or founders on the company's own pages).
+/// LinkedIn is never automated or fetched.
+/// </summary>
 public class ContactFinderStep : IRelayStep
 {
     private const string Agent = AgentIds.ContactFinder;
     public string AgentId => Agent;
 
-    private static readonly HashSet<string> RoleMailboxes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "info", "hr", "jobs", "careers", "hello", "contact", "team", "support", "sales", "admin", "recruiting"
-    };
-
     private readonly IContactRepository _contacts;
+    private readonly RelatedPeoplePhase? _people;
 
-    public ContactFinderStep(IContactRepository contacts)
+    public ContactFinderStep(IContactRepository contacts, IRelatedPeopleFinder? people = null, int maxSiteLookups = 10)
     {
         _contacts = contacts;
+        _people = people == null ? null : new RelatedPeoplePhase(people, contacts, maxSiteLookups);
     }
 
     public async Task RunAsync(RelayState state, CancellationToken cancellationToken)
@@ -66,6 +68,8 @@ public class ContactFinderStep : IRelayStep
             }
         }
 
+        if (_people != null) await _people.RunAsync(state, cancellationToken);
+
         await log.ResultAsync(Agent,
             $"{withEmail} of {state.Leads.Count} lead(s) have a public email. {quietNoEmail} lower-scoring lead(s) have none and stay on the list for manual review.");
         await log.HandoffAsync(Agent, state.StrongLeads == 0
@@ -79,7 +83,6 @@ public class ContactFinderStep : IRelayStep
         if (await _contacts.GetByNormalizedEmailAsync(normalized, ct) != null) return false;
 
         var opportunity = lead.Opportunity;
-        var localPart = normalized.Split('@')[0];
 
         await _contacts.AddAsync(new Contact
         {
@@ -92,7 +95,8 @@ public class ContactFinderStep : IRelayStep
             Source = opportunity.Source,
             SourceUrl = opportunity.SourceUrl,
             ChannelBasis = "ExplicitBusinessContact",
-            IsRoleAccount = RoleMailboxes.Contains(localPart),
+            IsRoleAccount = RoleAccountClassifier.IsRoleAccount(normalized),
+            RelationToPost = "poster",
             Notes = $"Published in the posting '{opportunity.Title}'.",
             CreatedBy = "Agent: Contact Finder"
         }, ct);
