@@ -17,6 +17,12 @@ public class LocalLeadRulesTests
     [InlineData("Hotel Grand Residency", "Hotels & Travel", "hotel")]
     [InlineData("Shree Ram Steel Industries", "Manufacturing & MSME", "industries")]
     [InlineData("Mishra & Associates Advocate", "Professional Services", "advocate")]
+    [InlineData("Pragya Construction", "Construction & Trades", "construction")]
+    [InlineData("Mahadev Construction Company", "Construction & Trades", "construction")]
+    [InlineData("Ali Plumbing Works", "Construction & Trades", "plumbing")]
+    [InlineData("Raju Electrician Service", "Construction & Trades", "electrician")]
+    [InlineData("Singh Civil Contractors", "Construction & Trades", "contractors")]
+    [InlineData("Anurag Hardware Store", "Retail & Shops", "hardware")]
     public void Categorise_PicksTheCategoryAndSaysWhy(string name, string category, string keyword)
     {
         var (actual, reason) = LocalLeadCategoriser.Categorise(name, null);
@@ -53,7 +59,7 @@ public class LocalLeadRulesTests
     [Fact]
     public void Categories_ListEndsWithOther()
     {
-        Assert.Equal(9, LocalLeadCategoriser.Categories.Count);
+        Assert.Equal(10, LocalLeadCategoriser.Categories.Count);
         Assert.Equal("Other", LocalLeadCategoriser.Categories[^1]);
     }
 
