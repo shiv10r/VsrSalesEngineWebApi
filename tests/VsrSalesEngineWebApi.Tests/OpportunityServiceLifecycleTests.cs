@@ -28,7 +28,7 @@ public class OpportunityServiceLifecycleTests
         var dto = new CreateOpportunityDto(
             Company: "Acme Cloud Corp",
             Title: "Staff .NET Engineer Contract",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             Location: "Remote",
             Fit: "High",
             Type: "Individual developer",

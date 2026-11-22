@@ -36,12 +36,6 @@ public record RetryExecutionResultDto(
     int AttemptCount
 );
 
-public record SimulateFailureRequestDto(
-    string FailureType, // "Transient", "Permanent", "Timeout", "RateLimitExceeded"
-    string? JobType,
-    string? ReferenceId
-);
-
 public record SmokeCheckItemDto(
     string Component,
     string Status,

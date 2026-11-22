@@ -18,15 +18,16 @@ public abstract class AgentSettingsTestBase
     protected const string HackerNews = "Hacker News (Freelance & Who's Hiring)";
     protected const string User = "sales@test.example";
 
-    protected readonly VsrDbContext _context = TestDbContextFactory.CreateSeeded();
+    protected readonly VsrDbContext _context;
     protected readonly AgentRunRepository _runs;
     protected readonly AgentSettingsService _settings;
     protected readonly AgentRelayService _relay;
     protected readonly AgentActivityService _activity;
     protected readonly FakeFeeds _feeds = new();
 
-    protected AgentSettingsTestBase()
+    protected AgentSettingsTestBase(VsrDbContext? context = null)
     {
+        _context = context ?? TestDbContextFactory.CreateSeeded();
         _runs = new AgentRunRepository(_context);
         var options = new AgentRelayOptions { StepPauseMs = 0 };
         var profiles = new SearchProfileRepository(_context);

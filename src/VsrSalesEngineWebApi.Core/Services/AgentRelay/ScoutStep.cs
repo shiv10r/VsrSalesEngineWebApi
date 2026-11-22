@@ -25,6 +25,14 @@ public class ScoutStep : IRelayStep
         var keywords = state.Profile?.TargetKeywords;
         if (string.IsNullOrWhiteSpace(keywords)) keywords = ".NET Contractor";
 
+        if (requested.Count == 0)
+        {
+            await log.ThoughtAsync(Agent,
+                $"Starting {state.Request.ShiftName}. Nothing to do: no source is switched on for this run. Turn a source on under Sources, then pick it for a shift in Agent settings.");
+            await log.HandoffAsync(Agent, $"Read 0 posting(s). Handing over to {state.NameOf(AgentIds.Filter)}.");
+            return;
+        }
+
         await log.ThoughtAsync(Agent,
             $"Starting {state.Request.ShiftName}. {requested.Count} source(s) on my list: {string.Join(", ", requested)}. Looking for: {keywords}.");
 
@@ -51,14 +59,14 @@ public class ScoutStep : IRelayStep
         {
             var status = definition?.PolicyStatus ?? "not registered";
             await log.WarningAsync(Agent, $"Skipping {name}: its source policy is '{status}'. I only read sources marked Active.");
-            state.SourcesFailed++;
+            state.SourcesSkipped++;
             return;
         }
 
         if (_feeds == null || !LiveSourceNames.IsLive(name))
         {
-            await log.WarningAsync(Agent, $"Skipping {name}: there is no live reader for it yet, and I won't make postings up.");
-            state.SourcesFailed++;
+            await log.WarningAsync(Agent, $"Skipping {name}: no adapter for {name}, and I won't make postings up.");
+            state.SourcesSkipped++;
             return;
         }
 

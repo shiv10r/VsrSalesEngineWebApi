@@ -165,39 +165,6 @@ public class ReliabilityService : IReliabilityService
         return MapToDto(record);
     }
 
-    public async Task<ExecutionRecordDto> SimulateFailureAsync(string failureType, string? jobType = null, string? referenceId = null)
-    {
-        var isTransient = failureType.Equals("Transient", StringComparison.OrdinalIgnoreCase) ||
-                          failureType.Equals("Timeout", StringComparison.OrdinalIgnoreCase) ||
-                          failureType.Equals("RateLimitExceeded", StringComparison.OrdinalIgnoreCase);
-
-        var record = new ExecutionRecord
-        {
-            JobType = jobType ?? "Discovery",
-            ReferenceId = referenceId ?? "TEST-REF-001",
-            Status = isTransient ? "FailedTransient" : "DeadLetter",
-            FailureClassification = failureType,
-            AttemptCount = 1,
-            MaxAttempts = isTransient ? 3 : 1,
-            ErrorMessage = isTransient
-                ? $"Simulated transient failure [{failureType}]: Upstream temporary hiccup"
-                : $"Simulated permanent failure [{failureType}]: Malformed request or policy violation",
-            DurationMs = 240,
-            NextRetryAtUtc = isTransient ? DateTime.UtcNow.AddSeconds(10) : null,
-            CreatedAtUtc = DateTime.UtcNow,
-            CompletedAtUtc = DateTime.UtcNow
-        };
-
-        await _executionRepo.AddAsync(record);
-
-        if (record.JobType.Equals("Discovery", StringComparison.OrdinalIgnoreCase))
-        {
-            await _executionRepo.RecordSourceFailureAsync("Simulated source");
-        }
-
-        return MapToDto(record);
-    }
-
     public async Task<OperationalSmokeDrillResultDto> RunSmokeDrillAsync()
     {
         var checks = new List<SmokeCheckItemDto>();
@@ -206,14 +173,11 @@ public class ReliabilityService : IReliabilityService
         var schedules = await _scheduleRepo.GetAllAsync();
         checks.Add(new SmokeCheckItemDto("DatabaseRepository", "PASS", $"{schedules.Count} automation schedules active in persistent store."));
 
-        // 2. Source Adapter Registry & Connectivity
-        checks.Add(new SmokeCheckItemDto("SourceRegistry", "PASS", "Permitted sources configured and operational."));
-
-        // 3. Reliability Engine
+        // 2. Reliability Engine
         var metrics = await GetMetricsAsync();
         checks.Add(new SmokeCheckItemDto("ReliabilityEngine", "PASS", $"System health '{metrics.SystemHealth}', dead letters: {metrics.DeadLetterCount}."));
 
-        // 4. Outreach Safety & Kill Switch
+        // 3. Outreach Safety & Kill Switch
         var killSwitchEngaged = OutreachSenderService.CheckKillSwitchActive();
         var outreachMode = Environment.GetEnvironmentVariable("OUTREACH_MODE") ?? "Test";
         checks.Add(new SmokeCheckItemDto(

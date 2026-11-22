@@ -73,7 +73,7 @@ public class ApiIntegrationAndConstraintTests
         var opp1 = await _opportunityService.CreateOpportunityAsync(new CreateOpportunityDto(
             Company: "Company Example",
             Title: ".NET Architect",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             Location: "Remote",
             Fit: "High",
             Type: "Individual developer",
@@ -88,7 +88,7 @@ public class ApiIntegrationAndConstraintTests
         var opp2 = await _opportunityService.CreateOpportunityAsync(new CreateOpportunityDto(
             Company: "Company Example",
             Title: ".NET Architect",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             Location: "Remote",
             Fit: "High",
             Type: "Individual developer",
