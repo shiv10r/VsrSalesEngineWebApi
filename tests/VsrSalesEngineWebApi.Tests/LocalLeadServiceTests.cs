@@ -220,7 +220,7 @@ public class LocalLeadServiceTests
         var options = _service.GetOptions();
 
         Assert.Equal(75, options.Districts.Count);
-        Assert.Equal(9, options.Categories.Count);
+        Assert.Equal(10, options.Categories.Count);
         Assert.Equal(new[] { "New", "Contacted", "Interested", "Won", "Lost" }, options.Statuses);
     }
 

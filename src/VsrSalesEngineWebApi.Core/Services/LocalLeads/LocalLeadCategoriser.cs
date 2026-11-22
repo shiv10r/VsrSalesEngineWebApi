@@ -13,7 +13,7 @@ public static class LocalLeadCategoriser
     public static readonly IReadOnlyList<string> Categories = new[]
     {
         "Healthcare", "Education & Coaching", "Restaurants & Cafes", "Retail & Shops", "Real Estate",
-        "Hotels & Travel", "Manufacturing & MSME", "Professional Services", Other
+        "Hotels & Travel", "Manufacturing & MSME", "Professional Services", "Construction & Trades", Other
     };
 
     // Order matters: the first category with a match wins ("Sharma Medical Store" is Healthcare, not Retail).
@@ -32,6 +32,12 @@ public static class LocalLeadCategoriser
             "garments", "boutique", "showroom", "electronics", "mobile", "footwear", "jewellers", "jewelers",
             "jewellery", "saree", "sarees", "cloth house", "fashion", "emporium", "bazaar", "hardware",
             "furniture", "stationers", "stationery", "optical" }),
+        // Placed after Retail so "Anurag Hardware Store" stays a shop, and before Real Estate so
+        // "Pragya Construction" is a construction firm.
+        ("Construction & Trades", new[] { "construction", "constructions", "contractor", "contractors", "civil",
+            "plumber", "plumbers", "plumbing", "electrician", "electricians", "electrical", "carpenter", "carpenters",
+            "carpentry", "painter", "painters", "painting", "mason", "masonry", "tiles", "tiling", "waterproofing",
+            "renovation", "roofing", "pwd" }),
         ("Real Estate", new[] { "real estate", "realty", "property", "properties", "builders", "developers", "colony",
             "housing", "plots", "township", "apartments", "estate agent" }),
         ("Hotels & Travel", new[] { "hotel", "resort", "lodge", "guest house", "homestay", "travels", "tours",
