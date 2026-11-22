@@ -62,18 +62,6 @@ public class ReliabilityController : ControllerBase
         return Ok(result);
     }
 
-    [DisallowGuest]
-    [HttpPost("simulate-failure")]
-    public async Task<ActionResult<ExecutionRecordDto>> SimulateFailure([FromBody] SimulateFailureRequestDto request)
-    {
-        var record = await _reliabilityService.SimulateFailureAsync(
-            request.FailureType,
-            request.JobType,
-            request.ReferenceId
-        );
-        return Ok(record);
-    }
-
     [HttpGet("kill-switch")]
     public ActionResult<object> GetKillSwitchStatus()
     {

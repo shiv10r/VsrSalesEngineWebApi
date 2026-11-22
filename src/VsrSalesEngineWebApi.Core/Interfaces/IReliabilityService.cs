@@ -17,6 +17,5 @@ public interface IReliabilityService
         int timeBudgetSeconds = 60,
         CancellationToken parentToken = default
     );
-    Task<ExecutionRecordDto> SimulateFailureAsync(string failureType, string? jobType = null, string? referenceId = null);
     Task<OperationalSmokeDrillResultDto> RunSmokeDrillAsync();
 }

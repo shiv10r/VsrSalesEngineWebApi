@@ -30,7 +30,7 @@ public class DomainEdgeCasesAndScoringTests
         var highOpp = await _opportunityService.CreateOpportunityAsync(new CreateOpportunityDto(
             Company: "Alpha Tech Solutions",
             Title: "Lead Senior .NET Azure Cloud Architect",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             Location: "Remote · India",
             Fit: "High",
             Type: "Direct project",
@@ -44,7 +44,7 @@ public class DomainEdgeCasesAndScoringTests
         var lowOpp = await _opportunityService.CreateOpportunityAsync(new CreateOpportunityDto(
             Company: "Generic Staffing Co",
             Title: "Entry Level Sales Associate",
-            Source: "Public job board",
+            Source: "Test source (no adapter)",
             Location: "On-site",
             Fit: "Low",
             Type: "Company/vendor",
@@ -69,7 +69,7 @@ public class DomainEdgeCasesAndScoringTests
         var opp = await _opportunityService.CreateOpportunityAsync(new CreateOpportunityDto(
             Company: "Beta Financial",
             Title: "Full Stack .NET React Engineer",
-            Source: "Approved feed",
+            Source: "Test source (no adapter)",
             Location: "Remote",
             Fit: "High",
             Type: "Individual developer",

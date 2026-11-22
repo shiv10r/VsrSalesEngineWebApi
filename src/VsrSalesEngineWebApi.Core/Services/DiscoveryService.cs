@@ -1,6 +1,7 @@
 using VsrSalesEngineWebApi.Core.DTOs;
 using VsrSalesEngineWebApi.Core.Entities;
 using VsrSalesEngineWebApi.Core.Interfaces;
+using VsrSalesEngineWebApi.Core.Services.AgentRelay;
 
 namespace VsrSalesEngineWebApi.Core.Services;
 
@@ -64,10 +65,10 @@ public class DiscoveryService : IDiscoveryService
             Name = dto.Name.Trim(),
             TargetKeywords = dto.TargetKeywords.Trim(),
             ExcludedKeywords = dto.ExcludedKeywords?.Trim() ?? string.Empty,
-            Location = string.IsNullOrWhiteSpace(dto.Location) ? "Remote · India" : dto.Location.Trim(),
+            Location = string.IsNullOrWhiteSpace(dto.Location) ? "Uttar Pradesh, India" : dto.Location.Trim(),
             OpportunityType = dto.OpportunityType ?? "All relevant types",
             PublishedWithinDays = dto.PublishedWithinDays.GetValueOrDefault(7),
-            SelectedSources = dto.SelectedSources?.ToList() ?? new List<string> { "Company careers", "Public job board" },
+            SelectedSources = dto.SelectedSources?.ToList() ?? new List<string>(),
             MaxResults = dto.MaxResults.GetValueOrDefault(50),
             IsActive = true,
             CreatedBy = actor,
@@ -118,10 +119,9 @@ public class DiscoveryService : IDiscoveryService
         var profileName = profile?.Name ?? "Manual Ad-hoc Discovery";
         var selectedSources = (request.SelectedSources != null && request.SelectedSources.Any())
             ? request.SelectedSources
-            : (profile?.SelectedSources ?? new List<string> { "Company careers", "Public job board" });
+            : (profile?.SelectedSources ?? new List<string>());
 
         var keywords = request.TargetKeywords ?? profile?.TargetKeywords ?? ".NET Contractor";
-        var location = request.Location ?? profile?.Location ?? "Remote · India";
 
         var allSources = await _sourceRepository.GetAllSourcesAsync(cancellationToken);
         var sourceMap = allSources.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
@@ -142,30 +142,24 @@ public class DiscoveryService : IDiscoveryService
                     RecordsFetched: 0,
                     NewMatches: 0,
                     RejectedByPolicy: 1,
-                    Status: "PolicyRestricted"
+                    Status: "PolicyRestricted",
+                    Note: $"{sourceName} is not enabled (Disabled, Restricted or not registered)"
                 ));
                 continue;
             }
 
-            // Fetch real live opportunities if live feed service is active
+            if (_liveJobFeedService == null || !LiveSourceNames.IsLive(sourceName))
+            {
+                // No real reader exists for this source. Never invent leads.
+                metrics.Add(new SourceMetricDto(sourceName, 0, 0, 0, "NoAdapter", $"no adapter for {sourceName}"));
+                continue;
+            }
+
             int newMatches = 0;
             int dups = 0;
 
             await _sourceRepository.IncrementDailyRequestCountAsync(sourceDef.Id, 1, cancellationToken);
-
-            IReadOnlyList<Opportunity> candidates;
-            if (_liveJobFeedService != null && IsLiveFeedSource(sourceName))
-            {
-                candidates = await _liveJobFeedService.FetchAllLiveContractJobsAsync(keywords, new[] { sourceName }, 15, cancellationToken);
-                if (candidates.Count == 0)
-                {
-                    candidates = GenerateSimulatedCandidates(sourceName, keywords, location);
-                }
-            }
-            else
-            {
-                candidates = GenerateSimulatedCandidates(sourceName, keywords, location);
-            }
+            var candidates = await _liveJobFeedService.FetchAllLiveContractJobsAsync(keywords, new[] { sourceName }, 15, cancellationToken);
 
             int fetched = candidates.Count;
             foreach (var candidate in candidates)
@@ -204,60 +198,19 @@ public class DiscoveryService : IDiscoveryService
             EvaluatedCount: totalEvaluated,
             NewMatchesCount: totalNew,
             DuplicateCount: totalDuplicates,
-            SourceMetrics: metrics
+            SourceMetrics: metrics,
+            Summary: Summarise(metrics, totalNew, totalDuplicates)
         );
     }
 
-    private static List<Opportunity> GenerateSimulatedCandidates(string sourceName, string keywords, string location)
+    private static string Summarise(IReadOnlyList<SourceMetricDto> metrics, int totalNew, int totalDuplicates)
     {
-        var list = new List<Opportunity>();
-        var timestamp = DateTime.UtcNow;
-
-        if (sourceName.Contains("careers", StringComparison.OrdinalIgnoreCase))
-        {
-            list.Add(new Opportunity
-            {
-                Id = $"OP-{timestamp.Ticks % 9000 + 2000}",
-                Company = "Apex Global Solutions",
-                Title = $"{keywords.Split(',')[0].Trim()} Lead",
-                Source = sourceName,
-                Location = location,
-                FoundAt = "Discovered Just Now",
-                Status = "New",
-                Fit = "High",
-                Type = "Individual developer",
-                HasVendorDocRequirements = false,
-                SourceUrl = "https://careers.apexsolutions.example/postings/lead",
-                EvidenceSnippet = $"Direct match for {keywords} on company career site.",
-                DeduplicationKey = "apex global solutions|lead",
-                RetrievedAtUtc = timestamp,
-                UpdatedAtUtc = timestamp
-            });
-        }
-        else if (sourceName.Contains("procurement", StringComparison.OrdinalIgnoreCase))
-        {
-            list.Add(new Opportunity
-            {
-                Id = $"OP-{timestamp.Ticks % 9000 + 3000}",
-                Company = "National Tech Authority",
-                Title = "Enterprise Cloud Integration RFP",
-                Source = sourceName,
-                Location = location,
-                FoundAt = "Discovered Just Now",
-                Status = "Readiness hold",
-                Fit = "Medium",
-                Type = "Company/vendor",
-                HasVendorDocRequirements = true,
-                VendorRequirementNotes = "Mandatory vendor registration with GSTIN and ISO certification.",
-                SourceUrl = "https://eprocure.gov.example/tenders/4092",
-                EvidenceSnippet = "RFP requirement for software modernize vendor partner.",
-                DeduplicationKey = "national tech authority|enterprise cloud integration rfp",
-                RetrievedAtUtc = timestamp,
-                UpdatedAtUtc = timestamp
-            });
-        }
-
-        return list;
+        if (metrics.Count == 0) return "Nothing to do: no source is selected.";
+        var notes = metrics.Where(m => m.Note != null).Select(m => m.Note!).ToList();
+        var read = metrics.Count(m => m.Status == "Success");
+        if (read == 0) return $"Nothing to do: no source could be read ({string.Join("; ", notes)}).";
+        var tail = notes.Count > 0 ? $" Skipped: {string.Join("; ", notes)}." : string.Empty;
+        return $"Read {read} source(s): {totalNew} new lead(s), {totalDuplicates} already stored.{tail}";
     }
 
     private static SourceDefinitionDto MapSource(SourceDefinition s) => new(
@@ -290,16 +243,4 @@ public class DiscoveryService : IDiscoveryService
         p.CreatedAtUtc,
         p.UpdatedAtUtc
     );
-
-    private static bool IsLiveFeedSource(string sourceName)
-    {
-        return sourceName.Contains("Hacker", StringComparison.OrdinalIgnoreCase) ||
-               sourceName.Contains("We Work", StringComparison.OrdinalIgnoreCase) ||
-               sourceName.Contains("Remotive", StringComparison.OrdinalIgnoreCase) ||
-               sourceName.Contains("Jobicy", StringComparison.OrdinalIgnoreCase) ||
-               sourceName.Contains("Approved feed", StringComparison.OrdinalIgnoreCase) ||
-               sourceName.Contains("Public job board", StringComparison.OrdinalIgnoreCase) ||
-               sourceName.Contains("Company careers", StringComparison.OrdinalIgnoreCase);
-    }
 }
-

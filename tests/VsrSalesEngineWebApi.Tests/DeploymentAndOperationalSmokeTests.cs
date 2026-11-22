@@ -69,7 +69,6 @@ public class DeploymentAndOperationalSmokeTests
         Assert.True(dto.AllChecksPassed);
 
         Assert.Contains(dto.Checks, c => c.Component == "DatabaseRepository" && c.Status == "PASS");
-        Assert.Contains(dto.Checks, c => c.Component == "SourceRegistry" && c.Status == "PASS");
         Assert.Contains(dto.Checks, c => c.Component == "ReliabilityEngine" && c.Status == "PASS");
         Assert.Contains(dto.Checks, c => c.Component == "OutreachSafety" && c.Status == "PASS");
     }

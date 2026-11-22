@@ -22,7 +22,8 @@ public class DiscoveryAndProfileServiceTests
         var sources = await service.GetSourcesAsync();
 
         Assert.NotEmpty(sources);
-        Assert.Contains(sources, s => s.Name == "Company careers");
+        Assert.Contains(sources, s => s.Name.StartsWith("Hacker News"));
+        Assert.DoesNotContain(sources, s => s.Name == "Company careers" || s.Name == "Public procurement");
         Assert.Contains(sources, s => s.Name == "LinkedIn handoff" && s.PolicyStatus == "Restricted");
     }
 
@@ -71,7 +72,7 @@ public class DiscoveryAndProfileServiceTests
             Location: "India",
             OpportunityType: "Individual developer",
             PublishedWithinDays: 14,
-            SelectedSources: new[] { "Company careers", "Public job board" },
+            SelectedSources: new[] { TestFixtureData.NoAdapterSource },
             MaxResults: 30
         ), "Tester");
 
@@ -102,42 +103,68 @@ public class DiscoveryAndProfileServiceTests
     }
 
     [Fact]
-    public async Task RunDiscovery_EnforcesPolicy_RestrictsLinkedInAndDeduplicates()
+    public async Task RunDiscovery_EnforcesPolicy_AndNeverInventsLeadsForSourcesWithoutAdapter()
     {
         var sourceRepo = new SourceRegistryRepository(TestDbContextFactory.CreateSeeded());
         var profileRepo = new SearchProfileRepository(TestDbContextFactory.CreateSeeded());
         var oppRepoMock = new Mock<IOpportunityRepository>();
+        var feeds = new Mock<ILiveJobFeedService>();
 
-        oppRepoMock.Setup(r => r.GetByDeduplicationKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Opportunity?)null);
-
-        var service = new DiscoveryService(sourceRepo, profileRepo, oppRepoMock.Object);
+        var service = new DiscoveryService(sourceRepo, profileRepo, oppRepoMock.Object, feeds.Object);
 
         var runResult = await service.RunDiscoveryAsync(new RunDiscoveryRequestDto(
             ProfileId: null,
             TargetKeywords: ".NET Specialist",
             ExcludedKeywords: null,
-            Location: "India · Remote",
-            SelectedSources: new[] { "Company careers", "LinkedIn handoff", "Public procurement" },
+            Location: "India",
+            SelectedSources: new[] { TestFixtureData.NoAdapterSource, "LinkedIn handoff" },
             MaxResults: 20
         ), "Sales Member");
 
-        Assert.NotNull(runResult.RunId);
         Assert.Equal("Completed", runResult.Status);
 
-        // LinkedIn handoff is Restricted by policy and must be flagged as PolicyRestricted
-        var linkedInMetric = runResult.SourceMetrics.FirstOrDefault(m => m.SourceName == "LinkedIn handoff");
-        Assert.NotNull(linkedInMetric);
-        Assert.Equal("PolicyRestricted", linkedInMetric.Status);
-        Assert.Equal(1, linkedInMetric.RejectedByPolicy);
+        var linkedIn = runResult.SourceMetrics.Single(m => m.SourceName == "LinkedIn handoff");
+        Assert.Equal("PolicyRestricted", linkedIn.Status);
+        Assert.Equal(1, linkedIn.RejectedByPolicy);
 
-        // Active sources should fetch
-        var careersMetric = runResult.SourceMetrics.FirstOrDefault(m => m.SourceName == "Company careers");
-        Assert.NotNull(careersMetric);
-        Assert.Equal("Success", careersMetric.Status);
-        Assert.True(careersMetric.NewMatches > 0);
+        var noAdapter = runResult.SourceMetrics.Single(m => m.SourceName == TestFixtureData.NoAdapterSource);
+        Assert.Equal("NoAdapter", noAdapter.Status);
+        Assert.Equal(0, noAdapter.RecordsFetched);
+        Assert.Contains($"no adapter for {TestFixtureData.NoAdapterSource}", noAdapter.Note);
 
-        // Verify repository add was called for new candidates
-        oppRepoMock.Verify(r => r.AddAsync(It.IsAny<Opportunity>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        Assert.Equal(0, runResult.EvaluatedCount);
+        Assert.StartsWith("Nothing to do", runResult.Summary);
+        oppRepoMock.Verify(r => r.AddAsync(It.IsAny<Opportunity>(), It.IsAny<CancellationToken>()), Times.Never);
+        feeds.Verify(f => f.FetchAllLiveContractJobsAsync(It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunDiscovery_WithNoSourceSelected_SaysNothingToDo()
+    {
+        var service = new DiscoveryService(
+            new SourceRegistryRepository(TestDbContextFactory.CreateDefaultSeeded()),
+            new SearchProfileRepository(TestDbContextFactory.CreateDefaultSeeded()),
+            new Mock<IOpportunityRepository>().Object);
+
+        var result = await service.RunDiscoveryAsync(new RunDiscoveryRequestDto(null, null, null, null, null, null), "Tester");
+
+        Assert.Empty(result.SourceMetrics);
+        Assert.Equal("Nothing to do: no source is selected.", result.Summary);
+    }
+
+    [Fact]
+    public async Task RunDiscovery_DisabledLiveFeed_IsNotFetched()
+    {
+        var feeds = new Mock<ILiveJobFeedService>();
+        var service = new DiscoveryService(
+            new SourceRegistryRepository(TestDbContextFactory.CreateDefaultSeeded()),
+            new SearchProfileRepository(TestDbContextFactory.CreateDefaultSeeded()),
+            new Mock<IOpportunityRepository>().Object, feeds.Object);
+
+        var result = await service.RunDiscoveryAsync(new RunDiscoveryRequestDto(
+            null, null, null, null, new[] { "Hacker News (Freelance & Who's Hiring)" }, null), "Tester");
+
+        Assert.Equal("PolicyRestricted", result.SourceMetrics.Single().Status);
+        feeds.Verify(f => f.FetchAllLiveContractJobsAsync(It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

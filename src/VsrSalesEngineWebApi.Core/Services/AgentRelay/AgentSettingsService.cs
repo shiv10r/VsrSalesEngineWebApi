@@ -164,7 +164,7 @@ public class AgentSettingsService : IAgentSettingsService
 
     private async Task<IReadOnlyList<string>> GetAvailableSourcesAsync() =>
         (await _sources.GetAllSourcesAsync())
-            .Where(s => s.PolicyStatus == "Active" && LiveSourceNames.IsLive(s.Name))
+            .Where(s => LiveSourceNames.IsLive(s.Name))
             .Select(s => s.Name)
             .ToList();
 

@@ -40,6 +40,9 @@ public class RelayState
     public int PostingsRead { get; set; }
     public int SourcesReached { get; set; }
     public int SourcesFailed { get; set; }
+
+    /// <summary>Sources not read on purpose: switched off by policy, or no adapter exists. Not a failure.</summary>
+    public int SourcesSkipped { get; set; }
     public int Rejected { get; set; }
     public int Duplicates { get; set; }
     public int NewLeads { get; set; }

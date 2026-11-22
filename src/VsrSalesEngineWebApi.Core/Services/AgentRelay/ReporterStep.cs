@@ -28,7 +28,12 @@ public class ReporterStep : IRelayStep
         run.Status = noSourceReadable ? "failed" : "completed";
 
         var duration = FormatDuration(run.FinishedAtUtc.Value - run.StartedAtUtc);
-        run.Summary = noSourceReadable
+        var nothingToDo = state.SourcesReached == 0 && state.SourcesFailed == 0;
+        run.Summary = nothingToDo
+            ? $"{run.ShiftName} had nothing to do: no enabled source to read" +
+              (state.SourcesSkipped > 0 ? $" ({state.SourcesSkipped} selected source(s) skipped: switched off or no adapter)." : " (none selected).") +
+              " Nothing was saved."
+            : noSourceReadable
             ? $"{run.ShiftName} could not read any source ({state.SourcesFailed} failed). Nothing was saved."
             : $"{run.ShiftName} finished in {duration}: read {state.PostingsRead} posting(s) from {state.SourcesReached} source(s), " +
               $"dropped {state.Rejected} as not relevant, skipped {state.Duplicates} already stored, saved {state.NewLeads} new lead(s), " +

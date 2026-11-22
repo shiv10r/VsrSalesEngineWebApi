@@ -18,7 +18,7 @@ public class ContactServiceTests
             Company: "Fintech Innovations",
             Role: "VP of Engineering",
             Email: "alex.rivera@fintechinnovations.example",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             SourceUrl: "https://fintechinnovations.example/team",
             ChannelBasis: "ExplicitBusinessContact",
             Notes: "Direct engineering contact"
