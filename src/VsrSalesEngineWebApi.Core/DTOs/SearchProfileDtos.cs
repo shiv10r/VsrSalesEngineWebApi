@@ -58,7 +58,8 @@ public record DiscoveryRunResultDto(
     int EvaluatedCount,
     int NewMatchesCount,
     int DuplicateCount,
-    IReadOnlyList<SourceMetricDto> SourceMetrics
+    IReadOnlyList<SourceMetricDto> SourceMetrics,
+    string Summary = ""
 );
 
 public record SourceMetricDto(
@@ -66,5 +67,6 @@ public record SourceMetricDto(
     int RecordsFetched,
     int NewMatches,
     int RejectedByPolicy,
-    string Status
+    string Status,
+    string? Note = null
 );

@@ -28,12 +28,10 @@ public class OpportunityServiceLifecycleTests
         var dto = new CreateOpportunityDto(
             Company: "Acme Cloud Corp",
             Title: "Staff .NET Engineer Contract",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             Location: "Remote",
             Fit: "High",
             Type: "Individual developer",
-            HasVendorDocRequirements: false,
-            VendorRequirementNotes: null,
             SourceUrl: "https://acme.example/careers/staff-dotnet",
             EvidenceSnippet: "Looking for senior architect to guide cloud migration.",
             MatchedQuery: ".net engineer"
@@ -60,7 +58,7 @@ public class OpportunityServiceLifecycleTests
     public async Task CreateOpportunityAsync_InvalidFields_ThrowsArgumentException(string company, string title)
     {
         var service = new OpportunityService(_repoMock.Object);
-        var dto = new CreateOpportunityDto(company, title, "Source", "Location", "High", "Individual developer", false, null, null, null, null);
+        var dto = new CreateOpportunityDto(company, title, "Source", "Location", "High", "Individual developer", null, null, null);
 
         await Assert.ThrowsAsync<ArgumentException>(() => service.CreateOpportunityAsync(dto));
     }
@@ -81,7 +79,7 @@ public class OpportunityServiceLifecycleTests
             .ReturnsAsync(existing);
 
         var service = new OpportunityService(_repoMock.Object);
-        var dto = new CreateOpportunityDto("TechVentures", "Backend API Lead", "Feed", "Remote", "High", "Individual developer", false, null, null, null, null);
+        var dto = new CreateOpportunityDto("TechVentures", "Backend API Lead", "Feed", "Remote", "High", "Individual developer", null, null, null);
 
         var result = await service.CreateOpportunityAsync(dto, "Harvester");
 

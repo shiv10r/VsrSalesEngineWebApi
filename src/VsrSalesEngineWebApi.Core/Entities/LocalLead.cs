@@ -16,9 +16,11 @@ public class LocalLead
     public bool HasWebsite { get; set; }
     public double? Rating { get; set; }
     public int? ReviewCount { get; set; }
-    public string Source { get; set; } = "Manual"; // CSV import, Manual
+    public string Source { get; set; } = "Manual"; // CSV import, Manual, Google Maps
     public string SourceLabel { get; set; } = "Manual";
     public string Status { get; set; } = "New"; // New, Contacted, Interested, Won, Lost
+    public string? PlaceId { get; set; } // Google place id (Google Maps source only)
+    public string? MapsUrl { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string CreatedBy { get; set; } = "Sales Member";
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

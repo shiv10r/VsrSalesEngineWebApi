@@ -13,7 +13,7 @@ using Xunit;
 
 namespace VsrSalesEngineWebApi.Tests;
 
-public class AgentRelayTests
+public partial class AgentRelayTests
 {
     private const string HackerNews = "Hacker News (Freelance & Who's Hiring)";
 
@@ -33,8 +33,6 @@ public class AgentRelayTests
             new SourceRegistryRepository(_context),
             _opportunities,
             new ContactRepository(_context),
-            new OutreachDraftService(new OutreachTemplateRepository(_context)),
-            new SuppressionRepository(_context),
             new AgentRelayOptions { StepPauseMs = 0 },
             _feeds);
     }
@@ -49,8 +47,7 @@ public class AgentRelayTests
         Title = title,
         Source = HackerNews,
         Location = "Remote",
-        EvidenceSnippet = evidence,
-        VendorRequirementNotes = notes,
+        EvidenceSnippet = evidence + (notes == null ? "" : " " + notes),
         SourceUrl = $"https://example.test/{id}",
         DeduplicationKey = $"test:{id}"
     };
@@ -145,47 +142,19 @@ public class AgentRelayTests
     }
 
     [Fact]
-    public async Task StrongLeadWithEmail_GetsDraft_PassesCompliance_AndCreatesContact()
+    public async Task LeadWithPublicEmail_CreatesContact_AndLeadWithoutIsLeftForManualReview()
     {
         _feeds.Postings = new[]
         {
-            Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work, mail hiring@northwind.example", "Direct Founder / Hiring Email: hiring@northwind.example")
+            Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work, mail hiring@northwind.example"),
+            Posting("OP-T2", "Acme", "Senior .NET Contract Developer (Remote)", "Cloud API work")
         };
 
         var (run, events) = await RunAsync();
 
-        Assert.Equal(1, run.DraftsReady);
-        Assert.Contains(events, e => e.AgentId == AgentIds.Drafter && e.Kind == EventKinds.Result && e.Message.Contains("Not sent"));
-        Assert.Contains(events, e => e.AgentId == AgentIds.Compliance && e.Message.StartsWith("Passed for Northwind"));
-        var draftEvent = events.Last(e => e.AgentId == AgentIds.Compliance && e.LeadJson != null);
-        Assert.Contains("\"draft\"", draftEvent.LeadJson);
+        Assert.Equal(2, run.NewLeads);
         Assert.NotNull(await new ContactRepository(_context).GetByNormalizedEmailAsync("hiring@northwind.example"));
-    }
-
-    [Fact]
-    public async Task StrongLeadWithoutEmail_IsFlaggedForManualHandoff_NeverAutomated()
-    {
-        _feeds.Postings = new[] { Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work") };
-
-        var (_, events) = await RunAsync();
-
-        Assert.Contains(events, e => e.AgentId == AgentIds.ContactFinder && e.Kind == EventKinds.Warning &&
-                                     e.Message.Contains("manual LinkedIn handoff") && e.Message.Contains("never automate"));
-    }
-
-    [Fact]
-    public async Task SuppressedRecipient_IsBlockedByCompliance()
-    {
-        _feeds.Postings = new[]
-        {
-            Posting("OP-T1", "Prospect Org", "Senior .NET Contract Developer (Remote)", "Cloud API work", "Email: do-not-contact@prospect.org")
-        };
-
-        var (run, events) = await RunAsync();
-
-        Assert.Equal(0, run.DraftsReady);
-        Assert.Contains(events, e => e.AgentId == AgentIds.Compliance && e.Kind == EventKinds.Warning &&
-                                     e.Message.Contains("suppression list"));
+        Assert.Contains(events, e => e.AgentId == AgentIds.ContactFinder && e.Message.StartsWith("1 of 2 lead(s) have a public email"));
     }
 
     [Fact]
@@ -203,175 +172,12 @@ public class AgentRelayTests
     [Fact]
     public async Task Source_WithoutLiveReader_IsSkippedWithoutFakeData()
     {
-        var (_, events) = await RunAsync(Request("Company careers"));
+        var (_, events) = await RunAsync(Request(TestFixtureData.NoAdapterSource));
 
-        Assert.Contains(events, e => e.AgentId == AgentIds.Scout && e.Message.Contains("no live reader") && e.Message.Contains("won't make postings up"));
-        Assert.Equal(0, await _context.Opportunities.CountAsync(o => o.Source == "Company careers" && o.RetrievedAtUtc > DateTime.UtcNow.AddMinutes(-1)));
+        Assert.Contains(events, e => e.AgentId == AgentIds.Scout && e.Message.Contains($"no adapter for {TestFixtureData.NoAdapterSource}") && e.Message.Contains("won't make postings up"));
+        Assert.Equal(0, await _context.Opportunities.CountAsync(o => o.Source == TestFixtureData.NoAdapterSource && o.RetrievedAtUtc > DateTime.UtcNow.AddMinutes(-1)));
     }
 
-    [Fact]
-    public async Task BeginRun_ReturnsNullWhileAnotherRunIsInProgress()
-    {
-        var first = await _relay.BeginRunAsync(Request());
-        var second = await _relay.BeginRunAsync(Request());
-
-        Assert.NotNull(first);
-        Assert.Null(second);
-    }
-
-    [Fact]
-    public async Task BeginRun_RecoversFromAStaleRunningRow()
-    {
-        _context.AgentRuns.Add(new AgentRun { Id = "RUN-OLD", StartedAtUtc = DateTime.UtcNow.AddHours(-3), Status = "running" });
-        await _context.SaveChangesAsync();
-
-        var run = await _relay.BeginRunAsync(Request());
-
-        Assert.NotNull(run);
-        Assert.Equal("failed", (await _runs.GetRunAsync("RUN-OLD"))!.Status);
-    }
-
-    [Fact]
-    public async Task RunNowEndpoint_Returns409WhenBusy_And202WithRunIdOtherwise()
-    {
-        var busy = new AgentActivityController(Activity(), new FakeLauncher(null), Heatmap()) { ControllerContext = WithHttpContext() };
-        var started = new AgentActivityController(Activity(), new FakeLauncher("RUN-1"), Heatmap()) { ControllerContext = WithHttpContext() };
-
-        Assert.IsType<ConflictObjectResult>(await busy.RunNow());
-        var accepted = Assert.IsType<AcceptedResult>(await started.RunNow());
-        Assert.Equal("RUN-1", Assert.IsType<RunNowResultDto>(accepted.Value).RunId);
-    }
-
-    [Fact]
-    public async Task Overview_CountsMatchStoredEvents()
-    {
-        _feeds.Postings = new[]
-        {
-            Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work", "Email: hiring@northwind.example"),
-            Posting("OP-T2", "IAPWE", "Freelance Writer")
-        };
-        var (run, events) = await RunAsync();
-
-        var overview = await Activity().GetOverviewAsync();
-
-        Assert.False(overview.RunInProgress);
-        Assert.Equal(8, overview.Agents.Count);
-        Assert.Equal(run.Id, overview.LastRun!.Id);
-        foreach (var card in overview.Agents)
-        {
-            var mine = events.Where(e => e.AgentId == card.Id).ToList();
-            Assert.Equal(mine.Count, card.Lifetime.EventsLogged);
-            Assert.Equal(mine.Count(e => e.LeadJson != null), card.Lifetime.ItemsProcessed);
-        }
-    }
-
-    [Fact]
-    public async Task Overview_ShowsTheCurrentAgentWorking_WhileARunIsInFlight()
-    {
-        var run = await _relay.BeginRunAsync(Request());
-        await new AgentLog(_runs, run!.Id, 0).ActionAsync(AgentIds.Scorer, "Scoring Northwind");
-
-        var overview = await Activity().GetOverviewAsync();
-
-        Assert.True(overview.RunInProgress);
-        Assert.Equal("working", overview.Agents.Single(a => a.Id == AgentIds.Scorer).Status);
-        Assert.Equal("Scoring Northwind", overview.Agents.Single(a => a.Id == AgentIds.Scorer).CurrentTask);
-        Assert.Equal("idle", overview.Agents.Single(a => a.Id == AgentIds.Scout).Status);
-        Assert.Equal("waiting", overview.Agents.Single(a => a.Id == AgentIds.Reporter).Status);
-    }
-
-    [Fact]
-    public async Task OffShiftRun_IsRecordedAsSkippedWithReason()
-    {
-        await _relay.RecordSkippedAsync(Request(), "Night shift is off duty (active 22:00-06:00 Asia/Kolkata).");
-
-        var run = (await _runs.GetRunsAsync(1)).Single();
-        var events = await _runs.GetEventsAsync(0, 10, run.Id);
-
-        Assert.Equal("skipped", run.Status);
-        Assert.Single(events);
-        Assert.Contains("off duty", events[0].Message);
-    }
-
-    [Fact]
-    public void Catalog_UsesPersonaNames_AndKeepsIdsAndFunctionLabels()
-    {
-        var expected = new (string Id, string Name, string Label)[]
-        {
-            ("scout", "Aarav", "Scout - "),
-            ("filter", "Priya", "Filter - "),
-            ("dedupe", "Daniel", "Dedupe - "),
-            ("scorer", "Ananya", "Scorer - "),
-            ("contact-finder", "Rohan", "Contact Finder - "),
-            ("drafter", "Sophie", "Drafter - "),
-            ("compliance", "Meera", "Compliance - "),
-            ("reporter", "James", "Reporter - ")
-        };
-
-        Assert.Equal(expected.Select(e => e.Id), AgentCatalog.All.Select(a => a.Id));
-        foreach (var (id, name, label) in expected)
-        {
-            var agent = AgentCatalog.All.Single(a => a.Id == id);
-            Assert.Equal(name, agent.Name);
-            Assert.StartsWith(label, agent.Role);
-            Assert.Equal(name, AgentCatalog.NameOf(id));
-        }
-    }
-
-    [Fact]
-    public async Task Handoffs_NameTheNextAgentByPersona()
-    {
-        _feeds.Postings = new[]
-        {
-            Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work", "Email: hiring@northwind.example")
-        };
-
-        var (_, events) = await RunAsync();
-
-        string Handoff(string from) => events.First(e => e.AgentId == from && e.Kind == EventKinds.Handoff).Message;
-        Assert.Contains("Priya", Handoff(AgentIds.Scout));
-        Assert.Contains("Daniel", Handoff(AgentIds.Filter));
-        Assert.Contains("Ananya", Handoff(AgentIds.Dedupe));
-        Assert.Contains("Rohan", Handoff(AgentIds.Scorer));
-        Assert.Contains("Sophie", Handoff(AgentIds.ContactFinder));
-        Assert.Contains("Meera", Handoff(AgentIds.Drafter));
-        Assert.Contains("James", Handoff(AgentIds.Compliance));
-    }
-
-    [Fact]
-    public async Task Overview_ShowsPersonaNamesWithStableIds()
-    {
-        var overview = await Activity().GetOverviewAsync();
-
-        Assert.Equal("Aarav", overview.Agents.Single(a => a.Id == "scout").Name);
-        Assert.Equal("James", overview.Agents.Single(a => a.Id == "reporter").Name);
-        Assert.StartsWith("Scout - ", overview.Agents.Single(a => a.Id == "scout").Role);
-    }
-
-    [Fact]
-    public void ScoringReasons_AlwaysSumToTheScore()
-    {
-        var keywords = new[] { "asp.net", "react" };
-        var samples = new[]
-        {
-            Posting("A", "Co", "Senior .NET Contract Developer (Remote)", "ASP.NET API on Azure, React front end", "hr@co.example"),
-            Posting("B", "Co", "React Engineer", "TypeScript"),
-            Posting("C", "Co", "Freelance Copywriter")
-        };
-
-        foreach (var sample in samples)
-        {
-            var result = ScoringRules.Score(sample, keywords, KeywordText.FindEmail(sample.VendorRequirementNotes) != null);
-            var sum = result.Reasons.Sum(r => int.Parse(Regex.Match(r, @"\(\+(\d+)\)$").Groups[1].Value));
-            Assert.Equal(sum, result.Score);
-        }
-
-        var strong = ScoringRules.Score(samples[0], keywords, true);
-        Assert.Contains(strong.Reasons, r => r == "Contract engagement (+20)");
-        Assert.Contains(strong.Reasons, r => r == ".NET / C# match (+25)");
-        Assert.Contains(strong.Reasons, r => r == "Public contact email in the posting (+15)");
-        Assert.Equal("High", strong.Fit);
-    }
 
     private static ControllerContext WithHttpContext() =>
         new() { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() };

@@ -48,7 +48,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
             Timezone = dto.Timezone ?? "Asia/Kolkata",
             IsEnabled = dto.IsEnabled.GetValueOrDefault(true),
             ProfileId = dto.ProfileId ?? "DEFAULT_PROFILE",
-            SelectedSources = dto.SelectedSources ?? new List<string> { "Company careers", "Public job boards" },
+            SelectedSources = dto.SelectedSources ?? new List<string>(),
             RunCap = dto.RunCap.GetValueOrDefault(50),
             QuietHoursStart = dto.QuietHoursStart ?? "22:00",
             QuietHoursEnd = dto.QuietHoursEnd ?? "07:00",
@@ -203,7 +203,7 @@ public class ScheduleExecutionService : IScheduleExecutionService
             }
             else
             {
-                resultMessage = $"Schedule '{schedule.Name}' executed successfully ({trigger}).";
+                resultMessage = $"Schedule '{schedule.Name}': no agent runner is configured, so nothing was run.";
             }
 
             schedule.LastRunAtUtc = DateTime.UtcNow;

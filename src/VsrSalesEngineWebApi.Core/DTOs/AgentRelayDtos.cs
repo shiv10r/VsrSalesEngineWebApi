@@ -1,7 +1,5 @@
 namespace VsrSalesEngineWebApi.Core.DTOs;
 
-public record AgentDraftDto(string Subject, string Body);
-
 public record AgentLeadDto(
     string? OpportunityId,
     string Company,
@@ -9,8 +7,7 @@ public record AgentLeadDto(
     string Source,
     int? Score,
     IReadOnlyList<string> Reasons,
-    string? Url,
-    AgentDraftDto? Draft = null);
+    string? Url);
 
 public record AgentEventDto(
     long Id,
@@ -32,8 +29,7 @@ public record AgentRunDto(
     string? Summary,
     int NewLeads,
     int Duplicates,
-    int Rejected,
-    int DraftsReady);
+    int Rejected);
 
 public record AgentLifetimeDto(int ItemsProcessed, int EventsLogged);
 

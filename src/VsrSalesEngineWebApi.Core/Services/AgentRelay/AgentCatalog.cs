@@ -7,8 +7,6 @@ public static class AgentIds
     public const string Dedupe = "dedupe";
     public const string Scorer = "scorer";
     public const string ContactFinder = "contact-finder";
-    public const string Drafter = "drafter";
-    public const string Compliance = "compliance";
     public const string Reporter = "reporter";
 }
 
@@ -34,8 +32,6 @@ public static class AgentCatalog
         new AgentInfo(AgentIds.Dedupe, "Daniel", "Dedupe - skips postings you already have"),
         new AgentInfo(AgentIds.Scorer, "Ananya", "Scorer - scores each new lead with transparent rules"),
         new AgentInfo(AgentIds.ContactFinder, "Rohan", "Contact Finder - looks for a public contact email inside the posting"),
-        new AgentInfo(AgentIds.Drafter, "Sophie", "Drafter - writes a grounded outreach draft for strong leads (nothing is sent)"),
-        new AgentInfo(AgentIds.Compliance, "Meera", "Compliance - checks the suppression list and opt-out footer on every draft"),
         new AgentInfo(AgentIds.Reporter, "James", "Reporter - writes the run summary for the dashboard")
     };
 

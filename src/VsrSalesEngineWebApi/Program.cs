@@ -11,6 +11,7 @@ using VsrSalesEngineWebApi.Core.Services.AgentRelay.People;
 using VsrSalesEngineWebApi.Infrastructure.Data;
 using VsrSalesEngineWebApi.Infrastructure.Repositories;
 using VsrSalesEngineWebApi.Infrastructure.Services;
+using VsrSalesEngineWebApi.Places;
 using VsrSalesEngineWebApi.Infrastructure.Services.PublicWeb;
 using VsrSalesEngineWebApi.Security;
 using VsrSalesEngineWebApi.Workers;
@@ -53,6 +54,8 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireAuthenticated", policy => policy.RequireAuthenticatedUser());
     options.AddPolicy("StandardUserOnly", policy => policy.RequireClaim("is_guest", "false"));
+    // Every endpoint needs a signed-in user unless it is explicitly [AllowAnonymous].
+    options.RequireAuthenticatedByDefault();
 });
 
 // Persistence: Supabase/PostgreSQL in production, EF InMemory fallback for zero-config local dev.
@@ -76,12 +79,8 @@ builder.Services.AddScoped<IOpportunityRepository, OpportunityRepository>();
 builder.Services.AddScoped<ISourceRegistryRepository, SourceRegistryRepository>();
 builder.Services.AddScoped<ISearchProfileRepository, SearchProfileRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
-builder.Services.AddScoped<IOutreachTemplateRepository, OutreachTemplateRepository>();
-builder.Services.AddScoped<ISuppressionRepository, SuppressionRepository>();
-builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
 builder.Services.AddScoped<IAutomationScheduleRepository, AutomationScheduleRepository>();
 builder.Services.AddScoped<IDistributedLockService, DistributedLockService>();
-builder.Services.AddScoped<IExecutionRepository, ExecutionRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOpportunityService, OpportunityService>();
 builder.Services.AddScoped<ILiveJobFeedService, LiveJobFeedService>();
@@ -89,17 +88,21 @@ builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
 builder.Services.AddScoped<IContactService, ContactService>();
 builder.Services.AddScoped<ILocalLeadRepository, LocalLeadRepository>();
 builder.Services.AddScoped<ILocalLeadService, LocalLeadService>();
-builder.Services.AddScoped<IOutreachDraftService, OutreachDraftService>();
-builder.Services.AddScoped<IOutreachSender, OutreachSenderService>();
-builder.Services.AddScoped<ICampaignService, CampaignService>();
+// Real-time Google Maps search through the official Places API (New). Empty GooglePlaces:ApiKey = feature off.
+var placesOptions = new GooglePlacesOptions();
+builder.Configuration.GetSection(GooglePlacesOptions.SectionName).Bind(placesOptions);
+builder.Services.AddSingleton(placesOptions);
+builder.Services.AddSingleton<PlacesUsageLimiter>();
+builder.Services.AddHttpClient(GooglePlacesClient.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(12));
+builder.Services.AddScoped<IPlacesClient, GooglePlacesClient>();
+builder.Services.AddScoped<IPlaceDiscoveryService, PlaceDiscoveryService>();
 builder.Services.AddScoped<IScheduleExecutionService, ScheduleExecutionService>();
 builder.Services.AddScoped<IDueScheduleRunner, DueScheduleRunner>();
 
-// Agent relay: eight agents write a persisted, human-readable activity log while they work.
+// Agent relay: six agents write a persisted, human-readable activity log while they work.
 builder.Services.AddSingleton(new AgentRelayOptions
 {
-    StepPauseMs = builder.Configuration.GetValue("Agents:StepPauseMs", 300), // UI pacing only
-    DraftThreshold = builder.Configuration.GetValue("Agents:DraftThreshold", 50)
+    StepPauseMs = builder.Configuration.GetValue("Agents:StepPauseMs", 300) // UI pacing only
 });
 // People connected to a post: public company pages only, fetched through a guarded client.
 builder.Services.AddSingleton<IHostResolver, SystemHostResolver>();
@@ -122,13 +125,6 @@ builder.Services.AddScoped<IAgentSettingsService, AgentSettingsService>();
 builder.Services.AddScoped<IAgentActivityService, AgentActivityService>();
 builder.Services.AddScoped<ILeadHeatmapService, LeadHeatmapService>();
 builder.Services.AddSingleton<IManualRunLauncher, ManualRunLauncher>();
-builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
-
-// LLM & AI Services (Gemini as default provider)
-builder.Services.AddHttpClient();
-builder.Services.AddSingleton<ILLMProvider, GeminiLlmProvider>();
-builder.Services.AddSingleton<ILLMRouter, LlmRouter>();
-builder.Services.AddScoped<IAiFormService, AiFormService>();
 
 // Dynamic port binding for container environments (Vercel, Cloud Run, Docker)
 var port = Environment.GetEnvironmentVariable("PORT") ?? Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS");
@@ -137,34 +133,13 @@ if (!string.IsNullOrWhiteSpace(port))
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 }
 
-// CORS configuration for local development UI and deployed frontend
-var configuredOrigins = builder.Configuration["AllowedOrigins"];
-var allowedOriginsList = new List<string> { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "https://vsr-sales-engine-webapp.vercel.app" };
-if (!string.IsNullOrWhiteSpace(configuredOrigins))
-{
-    allowedOriginsList.AddRange(configuredOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-}
-
+// CORS: exact-origin allowlist (AllowedOrigins env var + the production frontend; localhost only in Development).
+// Bearer tokens are sent in a header, so credentialed CORS is not needed.
+var corsOrigins = new CorsOrigins(builder.Configuration["AllowedOrigins"], builder.Environment.IsDevelopment());
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowConfiguredOrigins", policy =>
-    {
-        policy.SetIsOriginAllowed(origin =>
-              {
-                  if (string.IsNullOrWhiteSpace(origin)) return false;
-                  if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-                  {
-                      return uri.Host == "localhost" ||
-                             uri.Host == "127.0.0.1" ||
-                             uri.Host.EndsWith("vercel.app", StringComparison.OrdinalIgnoreCase) ||
-                             allowedOriginsList.Contains(origin, StringComparer.OrdinalIgnoreCase);
-                  }
-                  return false;
-              })
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
+        policy.SetIsOriginAllowed(corsOrigins.IsAllowed).AllowAnyHeader().AllowAnyMethod());
 });
 
 builder.Services.AddApiRateLimiting();

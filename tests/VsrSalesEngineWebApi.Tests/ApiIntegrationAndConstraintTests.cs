@@ -12,15 +12,12 @@ using Xunit;
 
 namespace VsrSalesEngineWebApi.Tests;
 
-[Collection("OutreachSenderStateCollection")]
 public class ApiIntegrationAndConstraintTests
 {
     private readonly IOpportunityRepository _opportunityRepo;
     private readonly IOpportunityService _opportunityService;
     private readonly IContactRepository _contactRepo;
     private readonly IContactService _contactService;
-    private readonly OutreachSenderService _outreachSender;
-    private readonly ISuppressionRepository _suppressionRepo;
     private readonly IAuthService _authService;
 
     public ApiIntegrationAndConstraintTests()
@@ -29,8 +26,6 @@ public class ApiIntegrationAndConstraintTests
         _opportunityService = new OpportunityService(_opportunityRepo);
         _contactRepo = new ContactRepository(TestDbContextFactory.CreateSeeded());
         _contactService = new ContactService(_contactRepo);
-        _suppressionRepo = new SuppressionRepository(TestDbContextFactory.CreateSeeded());
-        _outreachSender = new OutreachSenderService(_suppressionRepo);
 
         var userRepoMock = new Mock<IUserRepository>();
         userRepoMock.Setup(r => r.GetByEmailAsync("sales@vsr.local", It.IsAny<CancellationToken>()))
@@ -73,12 +68,10 @@ public class ApiIntegrationAndConstraintTests
         var opp1 = await _opportunityService.CreateOpportunityAsync(new CreateOpportunityDto(
             Company: "Company Example",
             Title: ".NET Architect",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             Location: "Remote",
             Fit: "High",
             Type: "Individual developer",
-            HasVendorDocRequirements: false,
-            VendorRequirementNotes: null,
             SourceUrl: url,
             EvidenceSnippet: "Original posting snippet.",
             MatchedQuery: ".NET Architect"
@@ -88,12 +81,10 @@ public class ApiIntegrationAndConstraintTests
         var opp2 = await _opportunityService.CreateOpportunityAsync(new CreateOpportunityDto(
             Company: "Company Example",
             Title: ".NET Architect",
-            Source: "Company careers",
+            Source: "Test source (no adapter)",
             Location: "Remote",
             Fit: "High",
             Type: "Individual developer",
-            HasVendorDocRequirements: false,
-            VendorRequirementNotes: null,
             SourceUrl: url,
             EvidenceSnippet: "Duplicate ingest snippet.",
             MatchedQuery: ".NET Architect"
@@ -111,7 +102,6 @@ public class ApiIntegrationAndConstraintTests
             Status: "New",
             Source: null,
             Fit: null,
-            HasVendorDocs: null,
             Page: 1,
             PageSize: 2
         );
@@ -149,32 +139,6 @@ public class ApiIntegrationAndConstraintTests
         ), "sales-rep-2");
 
         Assert.Equal(c1.Id, c2.Id);
-    }
-
-    [Fact]
-    public async Task IdempotentOutreachSend_DuplicateKeysDoNotDuplicateSend()
-    {
-        var idempotencyKey = $"IDEMP-{Guid.NewGuid():N}";
-
-        var request1 = new OutreachSendRequest(
-            RecipientEmail: "target.lead@example.com",
-            RecipientName: "Target Lead",
-            Subject: "Engineering capacity for .NET team",
-            Body: "Hi Target,\n\nWe would love to assist with your .NET modernization.",
-            IdempotencyKey: idempotencyKey,
-            IsTestMode: true,
-            SinkAddressOverride: null
-        );
-
-        var result1 = await _outreachSender.SendOutreachAsync(request1);
-        Assert.True(result1.Success);
-        Assert.True(result1.WasRoutedToSink);
-
-        // Send duplicate request with identical idempotency key
-        var result2 = await _outreachSender.SendOutreachAsync(request1);
-        Assert.True(result2.Success);
-        Assert.Equal(result1.MessageId, result2.MessageId);
-        Assert.Equal(result1.ProviderMessageId, result2.ProviderMessageId);
     }
 
     [Fact]

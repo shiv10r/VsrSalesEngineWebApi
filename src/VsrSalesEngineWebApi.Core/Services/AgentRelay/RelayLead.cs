@@ -15,16 +15,13 @@ public class RelayLead
     public int Score { get; set; }
     public List<string> Reasons { get; set; } = new();
     public string? Email { get; set; }
-    public AgentDraftDto? Draft { get; set; }
-    public bool CompliancePassed { get; set; }
 
-    public AgentLeadDto ToDto(bool includeScore = false, bool includeDraft = false) => new(
+    public AgentLeadDto ToDto(bool includeScore = false) => new(
         Opportunity.Id,
         Opportunity.Company,
         Opportunity.Title,
         Opportunity.Source,
         includeScore ? Score : null,
         includeScore ? Reasons : Array.Empty<string>(),
-        string.IsNullOrWhiteSpace(Opportunity.SourceUrl) ? null : Opportunity.SourceUrl,
-        includeDraft ? Draft : null);
+        string.IsNullOrWhiteSpace(Opportunity.SourceUrl) ? null : Opportunity.SourceUrl);
 }

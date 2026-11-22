@@ -26,7 +26,6 @@ public class AgentSettingsTests : AgentSettingsTestBase
         Assert.All(s.Agents, a => Assert.Equal(AgentCatalog.NameOf(a.Id), a.Name));
         Assert.All(s.Agents, a => Assert.Equal(a.Name, a.DefaultName));
         Assert.Equal(new[] { "scout", "dedupe", "reporter" }, s.Agents.Where(a => a.Required).Select(a => a.Id).OrderBy(i => i == "scout" ? 0 : i == "dedupe" ? 1 : 2));
-        Assert.Equal(50, s.DraftThreshold);
         Assert.NotEmpty(s.Keywords.Target);
         Assert.Equal(3, s.Shifts.Count);
         Assert.All(s.Shifts, x => Assert.Equal(2, x.IntervalHours));
@@ -40,10 +39,9 @@ public class AgentSettingsTests : AgentSettingsTestBase
     public async Task Save_PersistsEverything_AndRoundTrips()
     {
         var u = WithAgent(await CurrentAsync(), "scout", name: "Asha");
-        u = WithAgent(u, "drafter", enabled: false);
+        u = WithAgent(u, "filter", enabled: false);
         u = u with
         {
-            DraftThreshold = 60,
             Keywords = new UpdateKeywordsDto(new List<string> { "React", "Node.js" }, new List<string> { "intern" })
         };
         u = WithShift(u, s => s with { IntervalHours = 3, Sources = new List<string> { HackerNews.ToLowerInvariant() }, ActiveFrom = "08:00", ActiveTo = "20:30" });
@@ -53,8 +51,7 @@ public class AgentSettingsTests : AgentSettingsTestBase
         Assert.True(result.Ok);
         var s = await _settings.GetAsync();
         Assert.Equal("Asha", s.Agents.Single(a => a.Id == "scout").Name);
-        Assert.False(s.Agents.Single(a => a.Id == "drafter").Enabled);
-        Assert.Equal(60, s.DraftThreshold);
+        Assert.False(s.Agents.Single(a => a.Id == "filter").Enabled);
         Assert.Equal(new[] { "React", "Node.js" }, s.Keywords.Target);
         Assert.Equal(new[] { "intern" }, s.Keywords.Excluded);
         Assert.Equal(3, s.Shifts[0].IntervalHours);
@@ -72,7 +69,8 @@ public class AgentSettingsTests : AgentSettingsTestBase
     [Fact]
     public async Task Save_WritesOneFeedEvent_NamingWhoChangedWhat()
     {
-        var u = (await CurrentAsync()) with { DraftThreshold = 60 };
+        var u = await CurrentAsync();
+        u = WithAgent(u, "scout", name: "Asha");
         u = WithShift(u, s => s with { IntervalHours = 3 });
 
         await SaveAsync(u);
@@ -80,7 +78,7 @@ public class AgentSettingsTests : AgentSettingsTestBase
         var e = Assert.Single(await _runs.GetEventsAsync(0, 50, AgentSettingsService.SettingsEventRunId));
         Assert.Equal(AgentIds.Reporter, e.AgentId);
         Assert.Equal(EventKinds.Result, e.Kind);
-        Assert.StartsWith($"Settings changed by {User}: Draft threshold 50 -> 60", e.Message);
+        Assert.StartsWith($"Settings changed by {User}: Scout renamed Aarav -> Asha", e.Message);
         Assert.Contains("every 2h -> 3h", e.Message);
     }
 
@@ -108,7 +106,7 @@ public class AgentSettingsTests : AgentSettingsTestBase
     }
 
     [Fact]
-    public async Task Scorer_Off_SavesLeadsWithoutScores_AndNothingIsDrafted()
+    public async Task Scorer_Off_SavesLeadsWithoutScores()
     {
         _feeds.Postings = new[] { StrongLead() };
         await SaveAsync(WithAgent(await CurrentAsync(), "scorer", enabled: false));
@@ -116,8 +114,7 @@ public class AgentSettingsTests : AgentSettingsTestBase
         var (run, events) = await RunAsync();
 
         Assert.Equal(1, run.NewLeads);
-        Assert.Equal(0, run.DraftsReady);
-        Assert.Contains(events, e => e.AgentId == AgentIds.Scorer && e.Message == "Ananya is switched off - skipping this step. Saved 1 lead(s) without scores, so none will be drafted.");
+        Assert.Contains(events, e => e.AgentId == AgentIds.Scorer && e.Message == "Ananya is switched off - skipping this step. Saved 1 lead(s) without scores.");
         Assert.DoesNotContain(events, e => e.AgentId == AgentIds.Scorer && e.Message.Contains("scores "));
         Assert.NotNull(await new OpportunityRepository(_context).GetByDeduplicationKeyAsync("test:OP-S1"));
     }
@@ -133,20 +130,6 @@ public class AgentSettingsTests : AgentSettingsTestBase
         Assert.Equal("completed", run.Status);
         Assert.Contains(events, e => e.AgentId == AgentIds.ContactFinder && e.Message == "Rohan is switched off - skipping this step. No contact search this run.");
         Assert.Null(await new ContactRepository(_context).GetByNormalizedEmailAsync("hiring@northwind.example"));
-    }
-
-    [Fact]
-    public async Task Drafter_Off_MakesNoDrafts()
-    {
-        _feeds.Postings = new[] { StrongLead() };
-        var u = WithAgent(await CurrentAsync(), "drafter", enabled: false);
-        await SaveAsync(WithAgent(u, "compliance", enabled: false));
-
-        var (run, events) = await RunAsync();
-
-        Assert.Equal(0, run.DraftsReady);
-        Assert.Contains(events, e => e.AgentId == AgentIds.Drafter && e.Message == "Sophie is switched off - skipping this step. No drafts this run.");
-        Assert.Contains(events, e => e.AgentId == AgentIds.Compliance && e.Message.StartsWith("Meera is switched off"));
     }
 
     [Fact]
@@ -177,23 +160,11 @@ public class AgentSettingsTests : AgentSettingsTestBase
     }
 
     [Fact]
-    public async Task DraftThreshold_ComesFromTheSavedSettings()
-    {
-        _feeds.Postings = new[] { StrongLead() };
-        await SaveAsync((await CurrentAsync()) with { DraftThreshold = 100 });
-
-        var (run, events) = await RunAsync();
-
-        Assert.Equal(0, run.DraftsReady);
-        Assert.Contains(events, e => e.AgentId == AgentIds.Drafter && e.Message.Contains("No lead scored above 100"));
-    }
-
-    [Fact]
     public async Task Overview_ShowsSwitchedOffAgentsAsIdle()
     {
-        await SaveAsync(WithAgent(await CurrentAsync(), "drafter", enabled: false));
+        await SaveAsync(WithAgent(await CurrentAsync(), "filter", enabled: false));
 
-        var card = (await _activity.GetOverviewAsync()).Agents.Single(a => a.Id == "drafter");
+        var card = (await _activity.GetOverviewAsync()).Agents.Single(a => a.Id == "filter");
 
         Assert.Equal("idle", card.Status);
         Assert.Equal("Switched off in settings.", card.CurrentTask);
@@ -209,12 +180,12 @@ public class AgentSettingsTests : AgentSettingsTestBase
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Email, User) }, "test")) } }
         };
 
-        var ok = Assert.IsType<OkObjectResult>(await controller.Put((await CurrentAsync()) with { DraftThreshold = 70 }));
-        Assert.Equal(70, Assert.IsType<AgentSettingsDto>(ok.Value).DraftThreshold);
+        var ok = Assert.IsType<OkObjectResult>(await controller.Put(await CurrentAsync()));
+        Assert.IsType<AgentSettingsDto>(ok.Value);
         Assert.Equal(User, (await _settings.GetAsync()).UpdatedBy);
 
-        var bad = Assert.IsType<BadRequestObjectResult>(await controller.Put((await CurrentAsync()) with { DraftThreshold = 500 }));
-        Assert.Contains(Assert.IsType<SettingsErrorsDto>(bad.Value).Errors, e => e.Field == "draftThreshold");
+        var bad = Assert.IsType<BadRequestObjectResult>(await controller.Put((await CurrentAsync()) with { Keywords = null }));
+        Assert.Contains(Assert.IsType<SettingsErrorsDto>(bad.Value).Errors, e => e.Field == "keywords");
         Assert.IsType<OkObjectResult>(await controller.Get());
     }
 

@@ -14,7 +14,6 @@ public class AgentRun
     public int NewLeads { get; set; }
     public int Duplicates { get; set; }
     public int Rejected { get; set; }
-    public int DraftsReady { get; set; }
 }
 
 /// <summary>One line in the agents' activity log. Ids increase monotonically so clients can poll with afterId.</summary>

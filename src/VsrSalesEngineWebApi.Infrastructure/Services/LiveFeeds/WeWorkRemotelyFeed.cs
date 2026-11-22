@@ -91,8 +91,6 @@ internal sealed class WeWorkRemotelyFeed
                         Status = "New",
                         Fit = isContract ? "High" : "Medium",
                         Type = isContract ? "Contract" : "Full-Time / Contract",
-                        HasVendorDocRequirements = false,
-                        VendorRequirementNotes = "Verified listing on We Work Remotely platform",
                         SourceUrl = link,
                         EvidenceSnippet = desc.Length > 240 ? desc[..240] + "..." : desc,
                         DeduplicationKey = $"{company.ToLowerInvariant()}|{title.ToLowerInvariant()}",

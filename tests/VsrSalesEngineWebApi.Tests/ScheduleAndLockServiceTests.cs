@@ -41,7 +41,7 @@ public class ScheduleAndLockServiceTests
             CronExpression: "0 23 * * *",
             Timezone: "UTC",
             ProfileId: "PROF-001",
-            SelectedSources: new List<string> { "Company careers" },
+            SelectedSources: new List<string> { "Test source (no adapter)" },
             RunCap: 40,
             QuietHoursStart: "22:00",
             QuietHoursEnd: "07:00",

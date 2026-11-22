@@ -1,4 +1,7 @@
+using System.Reflection;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -83,19 +86,49 @@ public class SecurityHardeningTests
             .OrderBy(n => n)
             .ToList();
 
-        // Intentionally open to guests: sign-in, the timer endpoint (own secret key),
-        // and read-only style actions (draft preview, discovery preview run).
+        // Intentionally open to guests: sign-in and the timer endpoint (own secret key).
         var allowed = new[]
         {
             "AgentsController.RunDue",
-            "AiController.",
-            "AuthController.",
-            "OutreachController.GenerateDraft",
-            "OutreachController.ValidateDraft",
-            "SearchProfilesController.RunDiscovery"
+            "AuthController."
         };
 
         var unexpected = unguarded.Where(n => !allowed.Any(a => n.StartsWith(a))).ToList();
         Assert.True(unexpected.Count == 0, "Unguarded data-changing endpoints: " + string.Join(", ", unexpected));
+    }
+
+    [Fact]
+    public void OnlyTheKnownEndpointsAreReachableWithoutSignIn()
+    {
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+        var open = new List<string>();
+        var unprotected = new List<string>();
+
+        foreach (var type in typeof(Program).Assembly.GetTypes().Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract))
+        {
+            foreach (var m in type.GetMethods(flags).Where(m => m.IsDefined(typeof(HttpMethodAttribute), true)))
+            {
+                var anonymous = m.IsDefined(typeof(AllowAnonymousAttribute), true) || type.IsDefined(typeof(AllowAnonymousAttribute), true);
+                var authorized = m.IsDefined(typeof(AuthorizeAttribute), true) || type.IsDefined(typeof(AuthorizeAttribute), true);
+                var name = $"{type.Name}.{m.Name}";
+                if (anonymous) open.Add(name);
+                else if (!authorized) unprotected.Add(name);
+            }
+        }
+
+        Assert.True(unprotected.Count == 0, "Actions without [Authorize]: " + string.Join(", ", unprotected));
+        Assert.Equal(
+            new[] { "AgentsController.RunDue", "AuthController.CreateGuestSession", "AuthController.GetGuestStatus", "AuthController.Login", "HealthController.Check" },
+            open.OrderBy(n => n, StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    public void FallbackPolicy_RequiresAnAuthenticatedUser()
+    {
+        var options = new AuthorizationOptions();
+        options.RequireAuthenticatedByDefault();
+
+        Assert.NotNull(options.FallbackPolicy);
+        Assert.Contains(options.FallbackPolicy!.Requirements, r => r is DenyAnonymousAuthorizationRequirement);
     }
 }

@@ -9,7 +9,7 @@ public class OpportunityService : IOpportunityService
 {
     private static readonly HashSet<string> ValidStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
-        "New", "Needs review", "Qualified", "Contacted", "Readiness hold", "Interested", "Archived"
+        "New", "Needs review", "Qualified", "Contacted", "Interested", "Archived"
     };
 
     private static readonly HashSet<string> ValidFits = new(StringComparer.OrdinalIgnoreCase)
@@ -78,8 +78,6 @@ public class OpportunityService : IOpportunityService
             Status = "New",
             Fit = fit,
             Type = type,
-            HasVendorDocRequirements = dto.HasVendorDocRequirements,
-            VendorRequirementNotes = dto.VendorRequirementNotes,
             SourceUrl = dto.SourceUrl?.Trim() ?? string.Empty,
             EvidenceSnippet = dto.EvidenceSnippet?.Trim() ?? string.Empty,
             MatchedQuery = dto.MatchedQuery?.Trim() ?? string.Empty,
@@ -114,8 +112,6 @@ public class OpportunityService : IOpportunityService
         if (!string.IsNullOrWhiteSpace(dto.Location)) existing.Location = dto.Location.Trim();
         if (!string.IsNullOrWhiteSpace(dto.Fit) && ValidFits.Contains(dto.Fit)) existing.Fit = dto.Fit.Trim();
         if (!string.IsNullOrWhiteSpace(dto.Type) && ValidTypes.Contains(dto.Type)) existing.Type = dto.Type.Trim();
-        if (dto.HasVendorDocRequirements.HasValue) existing.HasVendorDocRequirements = dto.HasVendorDocRequirements.Value;
-        if (dto.VendorRequirementNotes != null) existing.VendorRequirementNotes = dto.VendorRequirementNotes.Trim();
         if (dto.EvidenceSnippet != null) existing.EvidenceSnippet = dto.EvidenceSnippet.Trim();
 
         existing.UpdatedAtUtc = DateTime.UtcNow;
@@ -208,8 +204,6 @@ public class OpportunityService : IOpportunityService
         o.Status,
         o.Fit,
         o.Type,
-        o.HasVendorDocRequirements,
-        o.VendorRequirementNotes,
         o.SourceUrl,
         o.EvidenceSnippet,
         o.RetrievedAtUtc,
