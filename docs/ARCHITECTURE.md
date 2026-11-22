@@ -1,121 +1,107 @@
 # VSR Sales Engine — Architecture
 
-Status: matches the code merged into `develop` on 2026-11-22. Import this file into Notion
+Status: matches the code merged into `develop` and `main` on 2026-11-22. Import this file into Notion
 (Import → Markdown) if you want it there; the project rules do not let agents write to Notion.
 
-## 1. What it is
+## 1. Purpose
 
-A lead-hunting tool for a software services company. A team of eight agents reads live job boards
-every two hours, drops what is not software work, removes duplicates, scores each lead with listed
-rules, finds public contact emails, drafts outreach for strong leads and checks compliance. A person
-approves before anything is sent. Nothing is sent today (test mode).
+A **lead generator** for a software company. It finds local business leads in Uttar Pradesh districts in
+real time and keeps them in one place, categorised by district and business type. It does not send email,
+run campaigns or post on LinkedIn. Task status and what is next: `TASKS.md`.
 
 ## 2. System
 
 ```text
-GitHub Actions timer (every 2 hours)
-        |  POST /api/agents/run-due   (header X-Agent-Key)
-        v
-Render web service: .NET 10 API + in-process worker  <---->  Supabase PostgreSQL
-        |
-        +--> live sources: Hacker News, We Work Remotely, Remotive, Jobicy
-        ^
+Vercel: React + TypeScript frontend
         |  JWT, JSON over HTTPS
-Vercel/Netlify: React + TypeScript frontend
+        v
+Render: .NET 10 API + in-process agent worker  <---->  Supabase PostgreSQL (not connected yet)
+        |
+        +--> Google Places API (New): real-time business search (needs GooglePlaces__ApiKey)
+        +--> company websites (public pages only): people connected to a post
+        +--> job feeds (Hacker News, We Work Remotely, Remotive, Jobicy): off by default
+GitHub Actions timer (optional): POST /api/agents/run-due, wakes a sleeping free-plan server
 ```
 
-Free-tier fit: Render sleeps after 15 minutes without traffic, so the timer wakes it. Each run keeps it
-awake about 15 minutes, roughly 90 of the 750 free hours a month. Do not use Render's free Postgres
-(deleted after 30 days); use Supabase. See `docs/DEPLOYMENT.md`.
+## 3. Where leads come from
 
-## 3. The agent relay
+| Source | How | Stored |
+|---|---|---|
+| **Google Maps, live** | Official Places API search by district, category and text | Only on "Save as lead": name, district, category, place ID, Maps link. Phone, website and rating are fetched live (Google's storage terms) |
+| CSV import | Your own lists, parsed in the browser | Name, district, category, phone, website, address, source label |
+| Manual add | Form | What you type |
+| Job postings (optional) | Four public job feeds, off by default | Posting, score, evidence link |
+| People connected to a post | Poster, hiring people, decision-makers found on the company's own public pages | Name, title, source page, relation to the post |
 
-Every run (timer, background worker or "Run agents now") passes through the same eight steps. Each
-step writes readable events to the database as it works; the dashboard shows them live.
+Not used, by design: scraping Google Maps, Facebook, Instagram, LinkedIn or directories (their terms forbid
+it). LinkedIn is manual handoff only: the app builds a search link and a message you copy and send yourself.
 
-| Order | Agent | Job | Hands over |
-|---|---|---|---|
-| 1 | Aarav (Scout) | Reads each selected live source | raw postings |
-| 2 | Priya (Filter) | Drops postings that are not software work, with a reason | software postings |
-| 3 | Daniel (Dedupe) | Skips postings already stored | new leads |
-| 4 | Ananya (Scorer) | Scores 0-100 using listed rules (contract work, .NET, modern stack, your keywords, public email, remote) | scored leads |
-| 5 | Rohan (Contact Finder) | Looks for a public email inside the posting; never automates LinkedIn | leads with contact |
-| 6 | Sophie (Drafter) | Drafts outreach for leads scoring over 50 (grounded, truthfulness guard) | drafts |
-| 7 | Meera (Compliance) | Checks the suppression list and opt-out footer on each draft | approved drafts |
-| 8 | James (Reporter) | Writes the run summary and counts | run record |
+## 4. The agents
 
-Rules-based, not an AI model, unless an LLM key is configured. Pacing between events is
-`Agents:StepPauseMs` (UI only, does not change results).
+Every run (background worker, timer or "Run agents now") passes through six steps and writes readable events
+to the database as it works; the Agents page shows them live.
 
-**Shifts (India time):** Morning 06:00-14:00 (Hacker News, Remotive), Day 14:00-22:00 (We Work Remotely,
-Jobicy), Night 22:00-06:00 (all four). Each runs every 2 hours inside its window.
+| Order | Agent | Job |
+|---|---|---|
+| 1 | Aarav (Scout) | Reads each enabled source |
+| 2 | Priya (Filter) | Drops postings that are not software work, with a reason |
+| 3 | Daniel (Dedupe) | Skips items already stored |
+| 4 | Ananya (Scorer) | Scores 0-100 using listed rules |
+| 5 | Rohan (Contact Finder) | Looks for public contacts and people connected to the post |
+| 6 | James (Reporter) | Writes the run summary and counts |
 
-## 4. Backend
+Names, on/off, keywords and shift windows are editable in Agent settings. Rules-based, not AI. With nothing
+enabled a run finishes as "nothing to do". Planned: a Maps Scout that runs a saved district × category search
+plan on the Places API every 30 minutes (task N32).
+
+## 5. Backend
 
 ```text
-Controller (thin: routing, auth, status codes)
-   -> Service (rules, validation, the relay steps)
-   -> Repository (EF Core queries and persistence)
-   -> PostgreSQL (Supabase) or EF InMemory for local dev
+Controller (thin) -> Service (rules) -> Repository (EF Core) -> PostgreSQL, or EF InMemory for local dev
 ```
 
-A test enforces that controllers never touch repositories or the database context directly.
-Projects: `src/VsrSalesEngineWebApi` (host, controllers, workers, security), `.Core` (services,
-interfaces, DTOs, entities), `.Infrastructure` (EF Core, repositories, live feed clients).
-Files stay under 300 lines.
+A test enforces that controllers never touch repositories or the database context directly. Projects:
+`src/VsrSalesEngineWebApi` (host, controllers, workers, security), `.Core` (services, relay, DTOs, entities),
+`.Infrastructure` (EF Core, repositories, feed clients, public-page fetcher). File limit: 300 lines.
 
-**Main tables:** opportunities, contacts, search profiles, source registry, campaigns, outreach
-templates, suppressions, schedules, executions, distributed locks, `AgentRuns`, `AgentEvents`, users.
+**Tables:** opportunities, contacts, local leads, search profiles, source registry, schedules, distributed
+locks, agent runs, agent events, agent settings, users.
 
-**Endpoints (agents):**
+**Endpoints:**
 
-| Endpoint | Auth | Purpose |
-|---|---|---|
-| `POST /api/agents/run-due` | `X-Agent-Key` | Timer: run every schedule that is due |
-| `POST /api/agents/run-now` | signed-in, not guest | Start a run now (202, 409 if running) |
-| `GET /api/agents/overview` | signed-in | Agent roster, status, last run |
-| `GET /api/agents/runs` | signed-in | Run history |
-| `GET /api/agents/events` | signed-in | Activity feed (oldest first, `afterId` paging) |
-| `GET /api/agents/heatmap` | signed-in | Leads and runs by weekday and hour (India time) |
-| `GET /api/agents/status` | signed-in | Schedule status |
+| Area | Endpoints |
+|---|---|
+| Public | `GET /health`, `POST /api/auth/login`, `POST /api/auth/guest-session` (development only), `POST /api/agents/run-due` (key) |
+| Local Leads | `GET /api/local-leads` (+ `/options`, `/summary`), `POST /api/local-leads` and `/import`, `PUT` and `DELETE /{id}`, `POST /discover` (live Maps search), `GET /discover/status`, `POST /from-place`, `GET /{id}/live-details` |
+| Agents | `GET /api/agents/overview`, `/runs`, `/events`, `/heatmap`, `/status`; `GET` and `PUT /api/agents/settings`; `POST /api/agents/run-now` |
+| Other | opportunities, contacts, schedules, search profiles, sources |
 
-Other controllers: auth, opportunities, contacts, campaigns, outreach, schedules, search profiles,
-sources, reliability, AI forms, health.
+Every endpoint needs a signed-in user unless listed as public; a test fails if another one is reachable
+without signing in.
 
-## 5. Frontend
+## 6. Frontend
 
-React + TypeScript + Vite. `src/App.tsx` is a thin shell. Hooks hold state per area
-(`useOpportunities`, `useAgents`, `useHeatmap`, `useSignIn`, ...), one component per screen under
-`components/screens`, one API module per feature under `services`. Files stay under 250 lines.
+React + TypeScript + Vite. `src/App.tsx` is a thin shell; hooks hold state per area, one component per screen
+under `components/screens`, one API module per feature under `services`. File limit: 250 lines.
+Pages: Dashboard (agent activity, lead heat map), Agents (roster, live feed, run history, settings),
+Local Leads, Opportunities, Discover, Contacts, Schedules, Sources, Activity log, Settings, Sign in.
+Every number comes from the API; an empty or unreachable server shows an honest message, never sample data.
 
-Pages: Dashboard (live agent activity, lead heat map), Agents (roster, live feed, run history),
-Opportunities, Contacts, Campaigns, Outreach, Schedules, Sources, Reliability, Settings, Sign in.
-Every number on screen comes from the API; empty and unreachable states say so plainly.
+## 7. Security
 
-## 6. Security
-
-- **Sign-in:** JWT. Passwords hashed with PBKDF2-SHA256 (100,000 iterations, per-user salt). Demo users
-  exist only in Development; elsewhere an admin is created only from `Seed__AdminEmail` /
-  `Seed__AdminPassword`.
-- **Guests:** read-only. A guard blocks guest tokens on every data-changing endpoint, and a test fails
-  if a new one is left open.
-- **Startup check:** outside Development the app refuses to start with a placeholder or short JWT secret.
-- **Rate limits:** 300 requests a minute per client, 10 a minute on sign-in (429 beyond).
-- **Headers:** nosniff, frame deny, no-store, CSP, HSTS in production; generic 500 messages.
-- **Frontend:** CSP and security headers on Vercel and Netlify; the demo-login shortcut and password are
-  not in production builds.
-- **Timer endpoint:** shared secret, constant-time comparison, disabled until `Agents__RunKey` is set.
-
-## 7. Boundaries
-
-- Outreach is draft-first and in test mode until a sending provider key and a verified sending domain exist.
-- LinkedIn is manual handoff only. No automated connection requests or messages.
-- Restricted sources are never fetched. Each lead keeps its source link and retrieval time.
-- Vendor claims (GST, certificates, references) are never invented.
+- Sign-in: JWT; passwords hashed with PBKDF2-SHA256 and a per-user salt; in production the only user is the
+  admin created from `Seed__AdminEmail` and `Seed__AdminPassword`.
+- Global sign-in-required policy; guests (development only) are read-only and blocked from every endpoint that
+  changes data or costs money; a reflection test enforces it.
+- CORS allows exact origins only; no credentials mode; look-alike hosts are rejected.
+- Rate limits: 300 requests a minute per client, 10 a minute on sign-in.
+- Headers on the API (nosniff, frame deny, no-store, CSP, HSTS); CSP and headers on Vercel and Netlify.
+- The server refuses to start in production with a placeholder or short JWT secret.
+- Public-page fetcher: public addresses only, `robots.txt` honoured, size and request caps, no redirects off
+  the site. The Places key is sent only in a header and never returned to the browser.
 
 ## 8. Known gaps
 
-- Backend not deployed; Supabase not connected (tasks N06-N08).
-- Scores are low on live data (top 20 so far); draft step rarely triggers (N27).
-- A database that already exists needs a migration for `AgentRuns` and `AgentEvents` (N26).
-- Several older sources (company careers, public procurement) still generate placeholder leads.
+See `TASKS.md`. Main ones: Supabase not connected (the live server loses data on restart), no Maps Scout
+agent or CSV export yet, a database that already exists needs a manual change after the scope trim, and
+the server does not yet refuse to start in production without a database.
