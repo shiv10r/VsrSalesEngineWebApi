@@ -29,7 +29,7 @@ public class OpportunityRepository : IOpportunityRepository
 
     public async Task<IReadOnlyList<Opportunity>> GetAllAsync(OpportunityFilterDto? filter = null, CancellationToken cancellationToken = default)
     {
-        return await FilterOpportunitiesAsync(filter ?? new OpportunityFilterDto(null, null, null, null, null), cancellationToken);
+        return await FilterOpportunitiesAsync(filter ?? new OpportunityFilterDto(null, null, null, null), cancellationToken);
     }
 
     public async Task<IReadOnlyList<DateTime>> GetRetrievedTimesAsync(DateTime sinceUtc, CancellationToken cancellationToken = default)
@@ -108,11 +108,6 @@ public class OpportunityRepository : IOpportunityRepository
         if (!string.IsNullOrWhiteSpace(filter.Fit) && !string.Equals(filter.Fit, "All", StringComparison.OrdinalIgnoreCase))
         {
             query = query.Where(o => string.Equals(o.Fit, filter.Fit, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (filter.HasVendorDocs.HasValue)
-        {
-            query = query.Where(o => o.HasVendorDocRequirements == filter.HasVendorDocs.Value);
         }
 
         return query.OrderByDescending(o => o.RetrievedAtUtc).ToList();

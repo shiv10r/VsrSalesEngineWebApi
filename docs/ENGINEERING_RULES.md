@@ -20,22 +20,13 @@ development only: `ASPNETCORE_ENVIRONMENT=Development` plus `Features:AllowDevel
 closed everywhere else. Guests are read-only: they use seeded data and cannot send, deploy, run agents or
 change data. Passwords are hashed; secrets never go in source or build output.
 
-## Sources and outreach
+## Sources
 
 - Prefer documented APIs, published feeds, permitted public access and human handoff. No restricted
   scraping, login or CAPTCHA bypass, or direct-message automation (LinkedIn is manual handoff only).
 - Every lead keeps its source link and retrieval time. Runs, schedule state, retries, errors and
   per-result provenance are stored. Duplicates are removed deterministically.
-- Outreach is draft-first. Before any real send check: channel configuration, authorization,
-  suppression/opt-out, rate caps, duplicate-send protection and an audit event. An unclear provider
-  response never triggers a blind resend.
 - A source failure or missing API is reported as such, never as fake success or invented results.
-
-## Vendor readiness
-
-Sales relevance, qualification and vendor/document readiness are separate. A buyer requirement points to
-evidence for a specific opportunity. Never claim VSR GST registration, offices, certificates, customer
-references or documents that are not real. Only an authorised human marks a sensitive document verified.
 
 ## Branches and PRs
 

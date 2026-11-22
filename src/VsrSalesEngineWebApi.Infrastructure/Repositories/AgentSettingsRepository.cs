@@ -28,7 +28,6 @@ public class AgentSettingsRepository : IAgentSettingsRepository
         }
         else
         {
-            existing.DraftThreshold = settings.DraftThreshold;
             existing.AgentsJson = settings.AgentsJson;
             existing.UpdatedBy = settings.UpdatedBy;
             existing.UpdatedAtUtc = settings.UpdatedAtUtc;

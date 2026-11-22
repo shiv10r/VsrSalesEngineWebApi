@@ -19,8 +19,7 @@ public class RelatedPeoplePhaseTests : AgentSettingsTestBase
     {
         _contacts = new ContactRepository(_context);
         _peopleRelay = new AgentRelayService(_runs, new SearchProfileRepository(_context), new SourceRegistryRepository(_context),
-            new OpportunityRepository(_context), _contacts, new OutreachDraftService(new OutreachTemplateRepository(_context)),
-            new SuppressionRepository(_context), new AgentRelayOptions { StepPauseMs = 0 }, _feeds, _settings, new RelatedPeopleFinder(_pages));
+            new OpportunityRepository(_context), _contacts, new AgentRelayOptions { StepPauseMs = 0 }, _feeds, _settings, new RelatedPeopleFinder(_pages));
     }
 
     private static Opportunity HnPost(string id, string company, string? companyUrl = "https://acme.io/", string? text = null)
@@ -222,7 +221,7 @@ public class RelatedPeoplePhaseTests : AgentSettingsTestBase
     public async Task EventsUseTheCurrentAgentNamesNotTheDefaults()
     {
         var update = await CurrentAsync();
-        update = WithAgent(WithAgent(update, "contact-finder", name: "Asha"), "drafter", name: "Kavya") with { DraftThreshold = 0 };
+        update = WithAgent(WithAgent(update, "contact-finder", name: "Asha"), "reporter", name: "Kavya");
         Assert.True((await SaveAsync(update)).Ok);
         _feeds.Postings = new[] { StrongLead() };
 

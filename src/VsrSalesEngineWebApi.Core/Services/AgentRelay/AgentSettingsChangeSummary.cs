@@ -20,11 +20,6 @@ public static class AgentSettingsChangeSummary
             if (old.Enabled != now.Enabled) changes.Add($"{now.Name} ({job}) switched {(now.Enabled ? "on" : "off")}");
         }
 
-        if (before.DraftThreshold != after.DraftThreshold)
-        {
-            changes.Add($"Draft threshold {before.DraftThreshold} -> {after.DraftThreshold}");
-        }
-
         if (!before.Keywords.Target.SequenceEqual(after.Keywords.Target)) changes.Add("target keywords changed");
         if (!before.Keywords.Excluded.SequenceEqual(after.Keywords.Excluded)) changes.Add("excluded keywords changed");
 

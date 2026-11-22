@@ -81,8 +81,6 @@ internal sealed class JobicyFeed
                     Status = "New",
                     Fit = isContract ? "High" : "Medium",
                     Type = isContract ? "Contract" : "Direct project",
-                    HasVendorDocRequirements = false,
-                    VendorRequirementNotes = "Verified listing via Jobicy Engineering API",
                     SourceUrl = jobUrl,
                     EvidenceSnippet = cleanDesc.Length > 240 ? cleanDesc[..240] + "..." : cleanDesc,
                     DeduplicationKey = $"{company.ToLowerInvariant()}|{title.ToLowerInvariant()}",

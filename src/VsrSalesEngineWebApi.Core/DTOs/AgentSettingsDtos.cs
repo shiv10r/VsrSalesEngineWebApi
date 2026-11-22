@@ -16,7 +16,6 @@ public record ShiftSettingDto(
 
 public record AgentSettingsDto(
     IReadOnlyList<AgentSettingDto> Agents,
-    int DraftThreshold,
     AgentKeywordsDto Keywords,
     IReadOnlyList<ShiftSettingDto> Shifts,
     IReadOnlyList<string> AvailableSources,
@@ -37,7 +36,6 @@ public record UpdateShiftDto(
 
 public record UpdateAgentSettingsDto(
     List<UpdateAgentDto>? Agents,
-    int DraftThreshold,
     UpdateKeywordsDto? Keywords,
     List<UpdateShiftDto>? Shifts);
 

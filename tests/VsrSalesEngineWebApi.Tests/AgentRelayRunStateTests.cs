@@ -60,7 +60,7 @@ public partial class AgentRelayTests
         var overview = await Activity().GetOverviewAsync();
 
         Assert.False(overview.RunInProgress);
-        Assert.Equal(8, overview.Agents.Count);
+        Assert.Equal(6, overview.Agents.Count);
         Assert.Equal(run.Id, overview.LastRun!.Id);
         foreach (var card in overview.Agents)
         {
@@ -108,8 +108,6 @@ public partial class AgentRelayTests
             ("dedupe", "Daniel", "Dedupe - "),
             ("scorer", "Ananya", "Scorer - "),
             ("contact-finder", "Rohan", "Contact Finder - "),
-            ("drafter", "Sophie", "Drafter - "),
-            ("compliance", "Meera", "Compliance - "),
             ("reporter", "James", "Reporter - ")
         };
 
@@ -138,9 +136,7 @@ public partial class AgentRelayTests
         Assert.Contains("Daniel", Handoff(AgentIds.Filter));
         Assert.Contains("Ananya", Handoff(AgentIds.Dedupe));
         Assert.Contains("Rohan", Handoff(AgentIds.Scorer));
-        Assert.Contains("Sophie", Handoff(AgentIds.ContactFinder));
-        Assert.Contains("Meera", Handoff(AgentIds.Drafter));
-        Assert.Contains("James", Handoff(AgentIds.Compliance));
+        Assert.Contains("James", Handoff(AgentIds.ContactFinder));
     }
 
     [Fact]
@@ -166,7 +162,7 @@ public partial class AgentRelayTests
 
         foreach (var sample in samples)
         {
-            var result = ScoringRules.Score(sample, keywords, KeywordText.FindEmail(sample.VendorRequirementNotes) != null);
+            var result = ScoringRules.Score(sample, keywords, KeywordText.FindEmail(sample.EvidenceSnippet) != null);
             var sum = result.Reasons.Sum(r => int.Parse(Regex.Match(r, @"\(\+(\d+)\)$").Groups[1].Value));
             Assert.Equal(sum, result.Score);
         }

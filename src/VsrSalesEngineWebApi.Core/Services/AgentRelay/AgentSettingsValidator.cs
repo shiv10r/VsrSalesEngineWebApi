@@ -17,11 +17,6 @@ public static class AgentSettingsValidator
         var errors = new List<ValidationErrorDto>();
         ValidateAgents(dto.Agents, errors);
 
-        if (dto.DraftThreshold is < 0 or > 100)
-        {
-            errors.Add(new("draftThreshold", "The draft threshold must be between 0 and 100."));
-        }
-
         ValidateKeywords(dto.Keywords, errors);
         ValidateShifts(dto.Shifts, scheduleIds, availableSources, errors);
         return errors;
@@ -31,7 +26,7 @@ public static class AgentSettingsValidator
     {
         if (agents == null || agents.Count == 0)
         {
-            errors.Add(new("agents", "Send all 8 agents."));
+            errors.Add(new("agents", "Send all 6 agents."));
             return;
         }
 
@@ -68,15 +63,7 @@ public static class AgentSettingsValidator
 
         foreach (var info in AgentCatalog.All.Where(a => !seenIds.Contains(a.Id)))
         {
-            errors.Add(new("agents", $"Agent '{info.Id}' is missing. Send all 8 agents."));
-        }
-
-        var drafter = agents.FirstOrDefault(a => a.Id == AgentIds.Drafter);
-        var complianceIndex = agents.FindIndex(a => a.Id == AgentIds.Compliance);
-        if (drafter is { Enabled: true } && complianceIndex >= 0 && !agents[complianceIndex].Enabled)
-        {
-            errors.Add(new($"agents[{complianceIndex}].enabled",
-                "The Compliance agent must stay on while the Drafter is on, because every draft needs a compliance check."));
+            errors.Add(new("agents", $"Agent '{info.Id}' is missing. Send all 6 agents."));
         }
     }
 

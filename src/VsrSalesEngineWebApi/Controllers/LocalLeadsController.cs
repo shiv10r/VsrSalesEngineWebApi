@@ -154,6 +154,7 @@ public class LocalLeadsController : ControllerBase
         }
     }
 
+    [DisallowGuest]
     [HttpGet("{id}/live-details")]
     [ProducesResponseType(typeof(PlaceLiveDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -5,9 +5,9 @@ using VsrSalesEngineWebApi.Core.Security;
 namespace VsrSalesEngineWebApi.Infrastructure.Data;
 
 /// <summary>
-/// Seeds configuration only: the source registry, the default search profile, outreach templates, the three
-/// shift schedules and (Development only) demo users. It never invents business data: no opportunities,
-/// contacts, campaigns, executions or suppressions, and no invented counters.
+/// Seeds configuration only: the source registry, the default search profile, the three
+/// shift schedules and (Development only) demo users. It never invents business data: no opportunities
+/// or contacts, and no invented counters.
 /// </summary>
 public static class VsrDbSeeder
 {
@@ -22,7 +22,6 @@ public static class VsrDbSeeder
 
         if (!await context.Sources.AnyAsync(cancellationToken)) context.Sources.AddRange(SourceRegistrySeed.All());
         if (!await context.Schedules.AnyAsync(cancellationToken)) context.Schedules.AddRange(ShiftScheduleSeed.All());
-        if (!await context.OutreachTemplates.AnyAsync(cancellationToken)) context.OutreachTemplates.AddRange(OutreachTemplateSeed.All());
 
         await SeedUsersAsync(context, users ?? UserSeedOptions.None, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);

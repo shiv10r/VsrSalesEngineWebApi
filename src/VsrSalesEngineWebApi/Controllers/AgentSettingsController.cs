@@ -7,7 +7,7 @@ using VsrSalesEngineWebApi.Security;
 
 namespace VsrSalesEngineWebApi.Controllers;
 
-/// <summary>What the owner can change about the agents: names, on/off, draft threshold, keywords and shifts.</summary>
+/// <summary>What the owner can change about the agents: names, on/off, keywords and shifts.</summary>
 [ApiController]
 [Route("api/agents/settings")]
 [Authorize]

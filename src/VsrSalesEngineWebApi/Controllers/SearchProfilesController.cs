@@ -79,6 +79,7 @@ public class SearchProfilesController : ControllerBase
         return NoContent();
     }
 
+    [DisallowGuest]
     [HttpPost("run")]
     [ProducesResponseType(typeof(DiscoveryRunResultDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> RunDiscovery([FromBody] RunDiscoveryRequestDto request, CancellationToken cancellationToken)

@@ -33,8 +33,6 @@ public partial class AgentRelayTests
             new SourceRegistryRepository(_context),
             _opportunities,
             new ContactRepository(_context),
-            new OutreachDraftService(new OutreachTemplateRepository(_context)),
-            new SuppressionRepository(_context),
             new AgentRelayOptions { StepPauseMs = 0 },
             _feeds);
     }
@@ -49,8 +47,7 @@ public partial class AgentRelayTests
         Title = title,
         Source = HackerNews,
         Location = "Remote",
-        EvidenceSnippet = evidence,
-        VendorRequirementNotes = notes,
+        EvidenceSnippet = evidence + (notes == null ? "" : " " + notes),
         SourceUrl = $"https://example.test/{id}",
         DeduplicationKey = $"test:{id}"
     };
@@ -145,47 +142,19 @@ public partial class AgentRelayTests
     }
 
     [Fact]
-    public async Task StrongLeadWithEmail_GetsDraft_PassesCompliance_AndCreatesContact()
+    public async Task LeadWithPublicEmail_CreatesContact_AndLeadWithoutIsLeftForManualReview()
     {
         _feeds.Postings = new[]
         {
-            Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work, mail hiring@northwind.example", "Direct Founder / Hiring Email: hiring@northwind.example")
+            Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work, mail hiring@northwind.example"),
+            Posting("OP-T2", "Acme", "Senior .NET Contract Developer (Remote)", "Cloud API work")
         };
 
         var (run, events) = await RunAsync();
 
-        Assert.Equal(1, run.DraftsReady);
-        Assert.Contains(events, e => e.AgentId == AgentIds.Drafter && e.Kind == EventKinds.Result && e.Message.Contains("Not sent"));
-        Assert.Contains(events, e => e.AgentId == AgentIds.Compliance && e.Message.StartsWith("Passed for Northwind"));
-        var draftEvent = events.Last(e => e.AgentId == AgentIds.Compliance && e.LeadJson != null);
-        Assert.Contains("\"draft\"", draftEvent.LeadJson);
+        Assert.Equal(2, run.NewLeads);
         Assert.NotNull(await new ContactRepository(_context).GetByNormalizedEmailAsync("hiring@northwind.example"));
-    }
-
-    [Fact]
-    public async Task StrongLeadWithoutEmail_IsFlaggedForManualHandoff_NeverAutomated()
-    {
-        _feeds.Postings = new[] { Posting("OP-T1", "Northwind", "Senior .NET Contract Developer (Remote)", "Cloud API work") };
-
-        var (_, events) = await RunAsync();
-
-        Assert.Contains(events, e => e.AgentId == AgentIds.ContactFinder && e.Kind == EventKinds.Warning &&
-                                     e.Message.Contains("manual LinkedIn handoff") && e.Message.Contains("never automate"));
-    }
-
-    [Fact]
-    public async Task SuppressedRecipient_IsBlockedByCompliance()
-    {
-        _feeds.Postings = new[]
-        {
-            Posting("OP-T1", "Prospect Org", "Senior .NET Contract Developer (Remote)", "Cloud API work", "Email: do-not-contact@prospect.org")
-        };
-
-        var (run, events) = await RunAsync();
-
-        Assert.Equal(0, run.DraftsReady);
-        Assert.Contains(events, e => e.AgentId == AgentIds.Compliance && e.Kind == EventKinds.Warning &&
-                                     e.Message.Contains("suppression list"));
+        Assert.Contains(events, e => e.AgentId == AgentIds.ContactFinder && e.Message.StartsWith("1 of 2 lead(s) have a public email"));
     }
 
     [Fact]

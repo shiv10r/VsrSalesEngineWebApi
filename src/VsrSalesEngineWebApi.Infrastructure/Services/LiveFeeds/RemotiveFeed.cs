@@ -71,8 +71,6 @@ internal sealed class RemotiveFeed
                     Status = "New",
                     Fit = isContract ? "High" : "Medium",
                     Type = isContract ? "Contract" : "Direct project",
-                    HasVendorDocRequirements = false,
-                    VendorRequirementNotes = $"Job Type: {jobType}. Verified Remotive listing.",
                     SourceUrl = jobUrl,
                     EvidenceSnippet = cleanDesc.Length > 240 ? cleanDesc[..240] + "..." : cleanDesc,
                     DeduplicationKey = $"{company.ToLowerInvariant()}|{title.ToLowerInvariant()}",
