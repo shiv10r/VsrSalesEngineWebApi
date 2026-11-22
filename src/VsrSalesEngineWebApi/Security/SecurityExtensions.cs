@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -13,6 +14,10 @@ public static class SecurityExtensions
         "VsrSalesEngineProductionSecureSecretKeyMustBe32BytesLong!",
         "VsrSalesEngineDevelopmentSecureSecretKeyMustBe32BytesLong!"
     };
+
+    /// <summary>Every endpoint requires a signed-in user unless it is explicitly marked [AllowAnonymous].</summary>
+    public static void RequireAuthenticatedByDefault(this AuthorizationOptions options) =>
+        options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
 
     /// <summary>
     /// Refuses to start outside Development with a short or publicly known JWT signing key,

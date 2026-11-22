@@ -26,12 +26,11 @@ public class OpportunitiesController : ControllerBase
         [FromQuery] string? status,
         [FromQuery] string? source,
         [FromQuery] string? fit,
-        [FromQuery] bool? hasVendorDocs,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var filter = new OpportunityFilterDto(query, status, source, fit, hasVendorDocs, page, pageSize);
+        var filter = new OpportunityFilterDto(query, status, source, fit, page, pageSize);
         var pagedResults = await _opportunityService.GetPagedOpportunitiesAsync(filter, cancellationToken);
         return Ok(pagedResults);
     }

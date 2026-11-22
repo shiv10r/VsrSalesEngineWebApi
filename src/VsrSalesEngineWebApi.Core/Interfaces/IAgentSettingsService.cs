@@ -22,6 +22,6 @@ public interface IAgentSettingsService
     /// <summary>Validates and saves. Nothing is changed when validation fails.</summary>
     Task<SettingsSaveResult> SaveAsync(UpdateAgentSettingsDto dto, string user);
 
-    /// <summary>What a run needs: current names, which agents are off, and the draft threshold.</summary>
+    /// <summary>What a run needs: current names, which agents are off.</summary>
     Task<AgentRuntimeSettings> GetRuntimeAsync();
 }

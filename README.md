@@ -1,8 +1,9 @@
 # VSR Sales Engine — Web API
 
-Backend for the VSR Sales Engine lead-hunting tool: .NET 10 LTS, ASP.NET Core, EF Core, PostgreSQL.
-A team of eight agents reads live job boards every two hours, filters, scores and drafts; a person
-approves before anything is sent. Frontend: [VsrSalesEngineWebapp](https://github.com/shiv10r/VsrSalesEngineWebapp).
+Backend for the VSR Sales Engine lead generator: .NET 10 LTS, ASP.NET Core, EF Core, PostgreSQL.
+It finds local business leads in Uttar Pradesh in real time (Google Maps Places) and, optionally, job-posting
+leads: a team of six agents reads live job boards every two hours, then filters, de-duplicates, scores and
+finds contacts. It never sends messages. Frontend: [VsrSalesEngineWebapp](https://github.com/shiv10r/VsrSalesEngineWebapp).
 
 ## Run locally
 
@@ -31,5 +32,4 @@ They exist only in Development. Sign in, open Agents, click "Run agents now".
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System, agent relay, endpoints, security |
 | [docs/ENGINEERING_RULES.md](docs/ENGINEERING_RULES.md) | Layering, guest mode, sources, branches, definition of done |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Render, Supabase, timer, environment variables, go-live checklist |
-| [docs/runbook/operational-drill-and-smoke-test.md](docs/runbook/operational-drill-and-smoke-test.md) | Operations drill |
 | [agents/README.md](agents/README.md) | Rules for the development agents in `.claude/agents` |

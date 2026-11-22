@@ -12,8 +12,6 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-      - key: OUTREACH_MODE
-        value: Test
       - key: AllowedOrigins
         value: https://vsrsalesengine.netlify.app
       - key: Jwt__Issuer

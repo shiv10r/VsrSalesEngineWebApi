@@ -346,13 +346,13 @@ public class PlaceDiscoveryTests
     }
 
     [Fact]
-    public void StatusAndLiveDetails_AreReadEndpointsOpenToGuests()
+    public void Status_IsReadOnlyAndOpenToGuests_ButLiveDetailsCostsMoneyAndIsNot()
     {
-        foreach (var action in new[] { "GetDiscoverStatus", "GetLiveDetails" })
-        {
-            var method = typeof(LocalLeadsController).GetMethod(action, BindingFlags.Public | BindingFlags.Instance)!;
-            Assert.Null(method.GetCustomAttribute<DisallowGuestAttribute>());
-        }
+        var status = typeof(LocalLeadsController).GetMethod("GetDiscoverStatus", BindingFlags.Public | BindingFlags.Instance)!;
+        Assert.Null(status.GetCustomAttribute<DisallowGuestAttribute>());
+
+        var details = typeof(LocalLeadsController).GetMethod("GetLiveDetails", BindingFlags.Public | BindingFlags.Instance)!;
+        Assert.NotNull(details.GetCustomAttribute<DisallowGuestAttribute>());
     }
 
     [Fact]

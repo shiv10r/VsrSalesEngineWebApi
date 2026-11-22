@@ -10,8 +10,6 @@ public record OpportunityDto(
     string Status,
     string Fit,
     string Type,
-    bool HasVendorDocRequirements,
-    string? VendorRequirementNotes,
     string SourceUrl,
     string EvidenceSnippet,
     DateTime RetrievedAtUtc,
@@ -34,8 +32,6 @@ public record CreateOpportunityDto(
     string Location,
     string Fit,
     string Type,
-    bool HasVendorDocRequirements,
-    string? VendorRequirementNotes,
     string? SourceUrl,
     string? EvidenceSnippet,
     string? MatchedQuery
@@ -47,8 +43,6 @@ public record UpdateOpportunityDto(
     string? Location,
     string? Fit,
     string? Type,
-    bool? HasVendorDocRequirements,
-    string? VendorRequirementNotes,
     string? EvidenceSnippet
 );
 
@@ -62,7 +56,6 @@ public record OpportunityFilterDto(
     string? Status,
     string? Source,
     string? Fit,
-    bool? HasVendorDocs,
     int Page = 1,
     int PageSize = 50
 );

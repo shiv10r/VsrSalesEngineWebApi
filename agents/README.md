@@ -33,7 +33,7 @@ They are installed in `.claude/agents/`, which is where Claude Code loads agents
 | ui-ux-designer | New UI and dashboard design |
 | qa-engineer | Tests, real end-to-end checks |
 | code-reviewer | Reviews every diff, enforces size and layering rules |
-| security-reviewer | Secrets, auth, input handling, outreach compliance |
+| security-reviewer | Secrets, auth, input handling |
 | devops | Git flow, CI, Render, Supabase, GitHub Actions schedule |
 | doc-writer | README, architecture docs, daily status |
 | task-manager | Owns `TASKS.md`, assigns work, tracks counts |

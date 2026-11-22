@@ -34,16 +34,14 @@ public abstract class AgentSettingsTestBase
         var schedules = new AutomationScheduleRepository(_context);
         var sources = new SourceRegistryRepository(_context);
 
-        _settings = new AgentSettingsService(new AgentSettingsRepository(_context), profiles, schedules, sources, _runs, options);
+        _settings = new AgentSettingsService(new AgentSettingsRepository(_context), profiles, schedules, sources, _runs);
         _relay = new AgentRelayService(_runs, profiles, sources, new OpportunityRepository(_context),
-            new ContactRepository(_context), new OutreachDraftService(new OutreachTemplateRepository(_context)),
-            new SuppressionRepository(_context), options, _feeds, _settings);
+            new ContactRepository(_context), options, _feeds, _settings);
         _activity = new AgentActivityService(_runs, schedules, _settings);
     }
 
     protected static UpdateAgentSettingsDto ToUpdate(AgentSettingsDto s) => new(
         s.Agents.Select(a => new UpdateAgentDto(a.Id, a.Name, a.Enabled)).ToList(),
-        s.DraftThreshold,
         new UpdateKeywordsDto(s.Keywords.Target.ToList(), s.Keywords.Excluded.ToList()),
         s.Shifts.Select(x => new UpdateShiftDto(x.ScheduleId, x.Enabled, x.IntervalHours, x.Sources.ToList(), x.ActiveFrom, x.ActiveTo)).ToList());
 
@@ -62,8 +60,7 @@ public abstract class AgentSettingsTestBase
 
     protected static Opportunity Posting(string id, string company, string title, string? notes = null, string evidence = "") => new()
     {
-        Id = id, Company = company, Title = title, Source = HackerNews, Location = "Remote", EvidenceSnippet = evidence,
-        VendorRequirementNotes = notes, SourceUrl = $"https://example.test/{id}", DeduplicationKey = $"test:{id}"
+        Id = id, Company = company, Title = title, Source = HackerNews, Location = "Remote", EvidenceSnippet = evidence + (notes == null ? "" : " " + notes), SourceUrl = $"https://example.test/{id}", DeduplicationKey = $"test:{id}"
     };
 
     protected static Opportunity StrongLead() => Posting("OP-S1", "Northwind", "Senior .NET Contract Developer (Remote)",

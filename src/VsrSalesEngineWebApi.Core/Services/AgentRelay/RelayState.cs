@@ -9,7 +9,7 @@ public interface IRelayStep
     Task RunAsync(RelayState state, CancellationToken cancellationToken);
 }
 
-/// <summary>Everything the eight steps share during one run.</summary>
+/// <summary>Everything the six steps share during one run.</summary>
 public class RelayState
 {
     public RelayState(AgentRun run, RelayRequest request, AgentLog log, AgentRelayOptions options)
@@ -25,10 +25,9 @@ public class RelayState
     public AgentLog Log { get; }
     public AgentRelayOptions Options { get; }
 
-    /// <summary>The owner's settings for this run: current agent names, which agents are off, draft threshold.</summary>
-    public AgentRuntimeSettings Runtime { get; set; } = AgentRuntimeSettings.Defaults(50);
+    /// <summary>The owner's settings for this run: current agent names, which agents are off.</summary>
+    public AgentRuntimeSettings Runtime { get; set; } = AgentRuntimeSettings.Defaults();
 
-    public int DraftThreshold => Runtime.DraftThreshold;
     public string NameOf(string agentId) => Runtime.NameOf(agentId);
     public bool IsEnabled(string agentId) => Runtime.IsEnabled(agentId);
 
@@ -46,6 +45,4 @@ public class RelayState
     public int Rejected { get; set; }
     public int Duplicates { get; set; }
     public int NewLeads { get; set; }
-    public int StrongLeads { get; set; }
-    public int DraftsReady { get; set; }
 }

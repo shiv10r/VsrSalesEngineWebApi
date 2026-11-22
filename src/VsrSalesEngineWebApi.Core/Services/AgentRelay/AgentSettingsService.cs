@@ -18,22 +18,19 @@ public class AgentSettingsService : IAgentSettingsService
     private readonly IAutomationScheduleRepository _schedules;
     private readonly ISourceRegistryRepository _sources;
     private readonly IAgentRunRepository _runs;
-    private readonly AgentRelayOptions _options;
 
     public AgentSettingsService(
         IAgentSettingsRepository settings,
         ISearchProfileRepository profiles,
         IAutomationScheduleRepository schedules,
         ISourceRegistryRepository sources,
-        IAgentRunRepository runs,
-        AgentRelayOptions options)
+        IAgentRunRepository runs)
     {
         _settings = settings;
         _profiles = profiles;
         _schedules = schedules;
         _sources = sources;
         _runs = runs;
-        _options = options;
     }
 
     public async Task<AgentSettingsDto> GetAsync()
@@ -55,7 +52,6 @@ public class AgentSettingsService : IAgentSettingsService
 
         return new AgentSettingsDto(
             agents,
-            stored?.DraftThreshold ?? _options.DraftThreshold,
             new AgentKeywordsDto(SplitKeywords(profile?.TargetKeywords), SplitKeywords(profile?.ExcludedKeywords)),
             shiftRows.Select(ToShiftDto).ToList(),
             await GetAvailableSourcesAsync(),
@@ -75,7 +71,7 @@ public class AgentSettingsService : IAgentSettingsService
         }
 
         var disabled = saved.Where(a => !a.Enabled).Select(a => a.Id).ToHashSet();
-        return new AgentRuntimeSettings(names, disabled, stored?.DraftThreshold ?? _options.DraftThreshold);
+        return new AgentRuntimeSettings(names, disabled);
     }
 
     public async Task<SettingsSaveResult> SaveAsync(UpdateAgentSettingsDto dto, string user)
@@ -112,7 +108,6 @@ public class AgentSettingsService : IAgentSettingsService
     private async Task SaveAgentRowAsync(UpdateAgentSettingsDto dto, string user)
     {
         var row = await _settings.GetAsync() ?? new AgentSettings();
-        row.DraftThreshold = dto.DraftThreshold;
         row.AgentsJson = JsonSerializer.Serialize(
             dto.Agents!.Select(a => new StoredAgent(a.Id, a.Name.Trim(), a.Enabled)), AgentLog.Json);
         row.UpdatedBy = user;

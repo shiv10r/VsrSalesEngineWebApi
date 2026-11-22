@@ -17,16 +17,11 @@ public class DefaultSeedTests : AgentSettingsTestBase
     {
         Assert.Empty(await _context.Opportunities.ToListAsync());
         Assert.Empty(await _context.Contacts.ToListAsync());
-        Assert.Empty(await _context.Campaigns.ToListAsync());
-        Assert.Empty(await _context.Executions.ToListAsync());
-        Assert.Empty(await _context.Suppressions.ToListAsync());
-        Assert.Empty(await _context.SourceFailureCounts.ToListAsync());
     }
 
     [Fact]
     public async Task Seed_KeepsConfiguration()
     {
-        Assert.NotEmpty(await _context.OutreachTemplates.ToListAsync());
         Assert.Equal(3, await _context.Schedules.CountAsync());
         Assert.Single(await _context.SearchProfiles.ToListAsync());
     }

@@ -108,8 +108,6 @@ internal sealed class HackerNewsFeed
                     Status = "New",
                     Fit = (!string.IsNullOrWhiteSpace(keywords) && text.Contains(keywords, StringComparison.OrdinalIgnoreCase)) ? "High" : "Medium",
                     Type = "Contract / Direct Project",
-                    HasVendorDocRequirements = false,
-                    VendorRequirementNotes = contactEmail != null ? $"Direct Founder / Hiring Email: {contactEmail}" : "Apply via Hacker News comment thread",
                     SourceUrl = storyUrl,
                     EvidenceSnippet = text.Length > 240 ? text[..240] + "..." : text,
                     PosterHandle = posterHandle,

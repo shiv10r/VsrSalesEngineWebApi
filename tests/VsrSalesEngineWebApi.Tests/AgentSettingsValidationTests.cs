@@ -26,12 +26,9 @@ public class AgentSettingsValidationTests : AgentSettingsTestBase
         yield return Case("agents[1].name", u => WithAgent(u, "filter", name: "aarav"));
         yield return Case("agents[0].enabled", u => WithAgent(u, "scout", enabled: false));
         yield return Case("agents[2].enabled", u => WithAgent(u, "dedupe", enabled: false));
-        yield return Case("agents[7].enabled", u => WithAgent(u, "reporter", enabled: false));
-        yield return Case("agents[6].enabled", u => WithAgent(u, "compliance", enabled: false));
+        yield return Case("agents[5].enabled", u => WithAgent(u, "reporter", enabled: false));
         yield return Case("agents[0].id", u => u with { Agents = u.Agents!.Select((a, i) => i == 0 ? a with { Id = "nobody" } : a).ToList() });
-        yield return Case("agents", u => u with { Agents = u.Agents!.Take(7).ToList() });
-        yield return Case("draftThreshold", u => u with { DraftThreshold = 101 });
-        yield return Case("draftThreshold", u => u with { DraftThreshold = -1 });
+        yield return Case("agents", u => u with { Agents = u.Agents!.Take(5).ToList() });
         yield return Case("keywords.target", u => u with { Keywords = new UpdateKeywordsDto(new List<string> { " " }, new List<string>()) });
         yield return Case("keywords.excluded[0]", u => u with { Keywords = new UpdateKeywordsDto(new List<string> { "net" }, new List<string> { "a,b" }) });
         yield return Case("shifts[0].intervalHours", u => WithShift(u, s => s with { IntervalHours = 0 }));

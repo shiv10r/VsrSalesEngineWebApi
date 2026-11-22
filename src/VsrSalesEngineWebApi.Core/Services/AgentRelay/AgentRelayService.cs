@@ -3,7 +3,7 @@ using VsrSalesEngineWebApi.Core.Interfaces;
 
 namespace VsrSalesEngineWebApi.Core.Services.AgentRelay;
 
-/// <summary>Runs the eight agents in order for one run and keeps the run record up to date.</summary>
+/// <summary>Runs the six agents in order for one run and keeps the run record up to date.</summary>
 public class AgentRelayService : IAgentRelay
 {
     private static readonly TimeSpan StaleAfter = TimeSpan.FromMinutes(30);
@@ -23,8 +23,6 @@ public class AgentRelayService : IAgentRelay
         ISourceRegistryRepository sources,
         IOpportunityRepository opportunities,
         IContactRepository contacts,
-        IOutreachDraftService drafts,
-        ISuppressionRepository suppressions,
         AgentRelayOptions options,
         ILiveJobFeedService? feeds = null,
         IAgentSettingsService? settings = null,
@@ -43,9 +41,7 @@ public class AgentRelayService : IAgentRelay
             new FilterStep(),
             new DedupeStep(opportunities),
             _scorer,
-            new ContactFinderStep(contacts, relatedPeople, options.MaxSiteLookups),
-            new DrafterStep(drafts),
-            new ComplianceStep(drafts, suppressions)
+            new ContactFinderStep(contacts, relatedPeople, options.MaxSiteLookups)
         };
         _reporter = new ReporterStep(runs);
     }
@@ -82,7 +78,7 @@ public class AgentRelayService : IAgentRelay
         {
             state.Runtime = _settings != null
                 ? await _settings.GetRuntimeAsync()
-                : AgentRuntimeSettings.Defaults(_options.DraftThreshold);
+                : AgentRuntimeSettings.Defaults();
             await LoadProfileAsync(state, cancellationToken);
 
             foreach (var step in _steps)
@@ -149,10 +145,8 @@ public class AgentRelayService : IAgentRelay
         var effect = step.AgentId switch
         {
             AgentIds.Filter => "Keeping every posting.",
-            AgentIds.Scorer => $"Saved {await _scorer.SaveUnscoredAsync(state, ct)} lead(s) without scores, so none will be drafted.",
+            AgentIds.Scorer => $"Saved {await _scorer.SaveUnscoredAsync(state, ct)} lead(s) without scores.",
             AgentIds.ContactFinder => "No contact search this run.",
-            AgentIds.Drafter => "No drafts this run.",
-            AgentIds.Compliance => "Nothing to check.",
             _ => string.Empty
         };
 

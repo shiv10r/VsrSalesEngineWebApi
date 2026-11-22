@@ -30,7 +30,7 @@ public class AgentActivityService : IAgentActivityService
         AgentEvent? latest = running == null ? null : await _runs.GetLatestEventAsync(running.Id);
         var currentIndex = latest == null ? -1 : AgentCatalog.IndexOf(latest.AgentId);
         var lastRunFailed = lastRun is { Status: "failed" };
-        var runtime = _settings != null ? await _settings.GetRuntimeAsync() : AgentRuntimeSettings.Defaults(50);
+        var runtime = _settings != null ? await _settings.GetRuntimeAsync() : AgentRuntimeSettings.Defaults();
 
         var cards = AgentCatalog.All.Select((agent, index) =>
         {
@@ -74,7 +74,7 @@ public class AgentActivityService : IAgentActivityService
 
     private static AgentRunDto ToDto(AgentRun r) => new(
         r.Id, r.ScheduleId, r.ShiftName, r.Trigger, r.StartedAtUtc, r.FinishedAtUtc,
-        r.Status, r.Summary, r.NewLeads, r.Duplicates, r.Rejected, r.DraftsReady);
+        r.Status, r.Summary, r.NewLeads, r.Duplicates, r.Rejected);
 
     private static AgentEventDto ToDto(AgentEvent e) => new(
         e.Id, e.RunId, e.AtUtc, e.AgentId, e.Kind, e.Message,
