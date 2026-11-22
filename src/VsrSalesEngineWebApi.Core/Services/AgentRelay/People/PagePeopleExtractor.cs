@@ -53,12 +53,33 @@ public static class PagePeopleExtractor
         if (matches.Count == 0) return false;
 
         var rest = TitleClassifier.WithoutTitles(text, matches);
-        var candidate = Separators.Split(rest).Select(s => s.Trim()).FirstOrDefault(s => PersonNames.IsName(s));
+        var candidate = Separators.Split(rest).Select(s => NameIn(s.Trim())).FirstOrDefault(n => n != null);
         if (candidate == null) return false;
 
         name = candidate;
         (relation, title) = TitleClassifier.Summarise(matches);
         return true;
+    }
+
+    private static readonly HashSet<string> Cues = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "talk", "to", "speak", "with", "ask", "for", "contact", "email", "e-mail", "meet", "message", "reach", "out",
+        "our", "cc", "attn", "attention", "call", "ping", "dm", "from", "by", "hi", "hello"
+    };
+
+    /// <summary>The name in a segment, allowing a few cue words in front ("Talk to Meera Jain").</summary>
+    private static string? NameIn(string segment)
+    {
+        if (PersonNames.IsName(segment)) return segment;
+
+        var tokens = segment.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (var take = Math.Min(3, tokens.Length - 1); take >= 2; take--)
+        {
+            var head = tokens[..^take];
+            var tail = string.Join(' ', tokens[^take..]);
+            if (head.All(t => Cues.Contains(t.Trim(':', ','))) && PersonNames.IsName(tail)) return tail;
+        }
+        return null;
     }
 
     /// <summary>A short line that is only a title, such as "CTO" or "Technical Recruiter at Acme".</summary>

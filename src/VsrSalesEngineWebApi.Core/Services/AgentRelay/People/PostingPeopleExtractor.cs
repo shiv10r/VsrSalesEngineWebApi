@@ -42,14 +42,15 @@ public static class PostingPeopleExtractor
                 }
             }
 
-            var mention = Mention.Match(sentence);
-            if (!mention.Success) continue;
+            foreach (Match mention in Mention.Matches(sentence))
+            {
+                var mentioned = mention.Groups["n"].Value.Trim();
+                if (!IsMentionableName(mentioned, opportunity.PosterHandle)) continue;
+                if (people.Any(p => p.Relation != PersonRelation.Poster && PersonNames.Key(p.Name) == PersonNames.Key(mentioned))) continue;
 
-            var mentioned = mention.Groups["n"].Value.Trim();
-            if (!IsMentionableName(mentioned, opportunity.PosterHandle)) continue;
-
-            people.Add(new RelatedPerson(mentioned, "Named in the post", PersonRelation.Mentioned,
-                opportunity.SourceUrl, "medium", null, Short(sentence)));
+                people.Add(new RelatedPerson(mentioned, "Named in the post", PersonRelation.Mentioned,
+                    opportunity.SourceUrl, "medium", null, Short(sentence)));
+            }
         }
 
         return people;
