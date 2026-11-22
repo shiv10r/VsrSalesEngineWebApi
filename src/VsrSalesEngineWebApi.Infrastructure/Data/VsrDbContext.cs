@@ -56,6 +56,7 @@ public class VsrDbContext : DbContext
             e.HasKey(l => l.Id);
             e.HasIndex(l => l.District);
             e.HasIndex(l => l.NormalizedPhone);
+            e.HasIndex(l => l.PlaceId);
         });
         modelBuilder.Entity<AgentSettings>(e =>
         {

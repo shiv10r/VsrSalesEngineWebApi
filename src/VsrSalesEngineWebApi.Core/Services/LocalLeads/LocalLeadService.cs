@@ -114,7 +114,7 @@ public class LocalLeadService : ILocalLeadService
     public Task<ImportLocalLeadsResultDto> ImportAsync(ImportLocalLeadsRequestDto request, string actor, CancellationToken cancellationToken = default) =>
         _importer.ImportAsync(request, actor, cancellationToken);
 
-    private static LocalLeadDto ToDto(LocalLead l) => new(
+    internal static LocalLeadDto ToDto(LocalLead l) => new(
         l.Id, l.BusinessName, l.Category, l.CategoryReason, l.District, l.Address, l.Phone, l.Website, l.HasWebsite,
-        l.Rating, l.ReviewCount, l.Source, l.SourceLabel, l.Status, l.Notes, l.CreatedBy, l.CreatedAtUtc, l.UpdatedAtUtc);
+        l.Rating, l.ReviewCount, l.Source, l.SourceLabel, l.Status, l.Notes, l.CreatedBy, l.CreatedAtUtc, l.UpdatedAtUtc, l.PlaceId, l.MapsUrl);
 }

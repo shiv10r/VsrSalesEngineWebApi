@@ -55,6 +55,9 @@ public class LocalLeadRepository : ILocalLeadRepository
     public Task<LocalLead?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
         _context.LocalLeads.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
 
+    public Task<LocalLead?> GetByPlaceIdAsync(string placeId, CancellationToken cancellationToken = default) =>
+        _context.LocalLeads.AsNoTracking().FirstOrDefaultAsync(l => l.PlaceId == placeId, cancellationToken);
+
     public async Task<LocalLead> AddAsync(LocalLead lead, CancellationToken cancellationToken = default)
     {
         _context.LocalLeads.Add(lead);

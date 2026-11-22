@@ -13,10 +13,12 @@ namespace VsrSalesEngineWebApi.Controllers;
 public class LocalLeadsController : ControllerBase
 {
     private readonly ILocalLeadService _service;
+    private readonly IPlaceDiscoveryService _places;
 
-    public LocalLeadsController(ILocalLeadService service)
+    public LocalLeadsController(ILocalLeadService service, IPlaceDiscoveryService places)
     {
         _service = service;
+        _places = places;
     }
 
     [HttpGet("options")]
@@ -105,6 +107,81 @@ public class LocalLeadsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpGet("discover/status")]
+    [ProducesResponseType(typeof(PlacesStatusDto), StatusCodes.Status200OK)]
+    public IActionResult GetDiscoverStatus() => Ok(_places.GetStatus());
+
+    /// <summary>Live Google Maps search (official Places API). Costs money per call, so guests are blocked.</summary>
+    [DisallowGuest]
+    [HttpPost("discover")]
+    [ProducesResponseType(typeof(DiscoverPlacesResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Discover([FromBody] DiscoverPlacesRequestDto request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _places.SearchAsync(request, cancellationToken));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (PlacesException ex)
+        {
+            return PlacesProblem(ex);
+        }
+    }
+
+    /// <summary>Saves only name, district, category, placeId and mapsUrl of a search result.</summary>
+    [DisallowGuest]
+    [HttpPost("from-place")]
+    [ProducesResponseType(typeof(SavePlaceResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(SavePlaceResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> FromPlace([FromBody] SavePlaceRequestDto request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _places.SaveAsync(request, Actor(), cancellationToken);
+            return result.AlreadySaved ? Ok(result) : Created($"/api/local-leads/{result.Lead.Id}", result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/live-details")]
+    [ProducesResponseType(typeof(PlaceLiveDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetLiveDetails(string id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _places.GetLiveDetailsAsync(id, cancellationToken));
+        }
+        catch (PlacesException ex)
+        {
+            return PlacesProblem(ex);
+        }
+    }
+
+    private IActionResult PlacesProblem(PlacesException ex) => ex.Failure switch
+    {
+        PlacesFailure.NotConfigured => StatusCode(StatusCodes.Status503ServiceUnavailable, new
+        {
+            configured = false,
+            message = "Google Maps search is not set up. Add GooglePlaces__ApiKey on the server."
+        }),
+        PlacesFailure.DailyCapReached or PlacesFailure.QuotaExceeded =>
+            StatusCode(StatusCodes.Status429TooManyRequests, new { configured = true, message = ex.Message }),
+        PlacesFailure.NotFound => NotFound(new { message = ex.Message }),
+        _ => StatusCode(StatusCodes.Status502BadGateway, new { configured = true, message = ex.Message })
+    };
 
     private string Actor() => User.FindFirstValue(ClaimTypes.Name) ?? "Sales Member";
 }
