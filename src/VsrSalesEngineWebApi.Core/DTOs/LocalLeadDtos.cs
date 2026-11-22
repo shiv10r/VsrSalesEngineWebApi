@@ -18,7 +18,9 @@ public record LocalLeadDto(
     string Notes,
     string CreatedBy,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc
+    DateTime UpdatedAtUtc,
+    string? PlaceId = null,
+    string? MapsUrl = null
 );
 
 public record LocalLeadOptionsDto(

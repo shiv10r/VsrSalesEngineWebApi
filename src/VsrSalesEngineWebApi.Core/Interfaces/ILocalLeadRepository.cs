@@ -7,6 +7,7 @@ public interface ILocalLeadRepository
 {
     Task<(IReadOnlyList<LocalLead> Items, int Total)> QueryAsync(LocalLeadFilterDto filter, CancellationToken cancellationToken = default);
     Task<LocalLead?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<LocalLead?> GetByPlaceIdAsync(string placeId, CancellationToken cancellationToken = default);
     Task<LocalLead> AddAsync(LocalLead lead, CancellationToken cancellationToken = default);
     Task AddRangeAsync(IReadOnlyCollection<LocalLead> leads, CancellationToken cancellationToken = default);
     Task<LocalLead> UpdateAsync(LocalLead lead, CancellationToken cancellationToken = default);
