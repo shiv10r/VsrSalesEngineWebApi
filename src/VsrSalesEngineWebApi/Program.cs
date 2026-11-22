@@ -7,9 +7,11 @@ using VsrSalesEngineWebApi.Core.Security;
 using VsrSalesEngineWebApi.Core.Services;
 using VsrSalesEngineWebApi.Core.Services.AgentRelay;
 using VsrSalesEngineWebApi.Core.Services.LocalLeads;
+using VsrSalesEngineWebApi.Core.Services.AgentRelay.People;
 using VsrSalesEngineWebApi.Infrastructure.Data;
 using VsrSalesEngineWebApi.Infrastructure.Repositories;
 using VsrSalesEngineWebApi.Infrastructure.Services;
+using VsrSalesEngineWebApi.Infrastructure.Services.PublicWeb;
 using VsrSalesEngineWebApi.Security;
 using VsrSalesEngineWebApi.Workers;
 
@@ -99,6 +101,20 @@ builder.Services.AddSingleton(new AgentRelayOptions
     StepPauseMs = builder.Configuration.GetValue("Agents:StepPauseMs", 300), // UI pacing only
     DraftThreshold = builder.Configuration.GetValue("Agents:DraftThreshold", 50)
 });
+// People connected to a post: public company pages only, fetched through a guarded client.
+builder.Services.AddSingleton<IHostResolver, SystemHostResolver>();
+builder.Services.AddSingleton<HostThrottle>();
+builder.Services.AddHttpClient<IPublicPageFetcher, PublicPageFetcher>()
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AllowAutoRedirect = false,
+        UseCookies = false,
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+        ConnectTimeout = TimeSpan.FromSeconds(5),
+        MaxResponseHeadersLength = 32,
+        ConnectCallback = SafeSocketConnector.ConnectAsync
+    });
+builder.Services.AddScoped<IRelatedPeopleFinder, RelatedPeopleFinder>();
 builder.Services.AddScoped<IAgentRunRepository, AgentRunRepository>();
 builder.Services.AddScoped<IAgentRelay, AgentRelayService>();
 builder.Services.AddScoped<IAgentSettingsRepository, AgentSettingsRepository>();

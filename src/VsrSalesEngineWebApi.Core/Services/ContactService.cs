@@ -177,6 +177,7 @@ public class ContactService : IContactService
         c.Notes,
         c.CreatedBy,
         c.CreatedAtUtc,
-        c.UpdatedAtUtc
+        c.UpdatedAtUtc,
+        c.RelationToPost
     );
 }

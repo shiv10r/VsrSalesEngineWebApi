@@ -17,6 +17,16 @@ public class Opportunity
     public string EvidenceSnippet { get; set; } = string.Empty;
     public string MatchedQuery { get; set; } = string.Empty;
     public string DeduplicationKey { get; set; } = string.Empty;
+
+    /// <summary>The person who published the post (for Hacker News: the comment author's username). Never a guessed real name.</summary>
+    public string? PosterHandle { get; set; }
+    public string? PosterProfileUrl { get; set; }
+
+    /// <summary>The company's own website when the feed or the post text gives one.</summary>
+    public string? CompanyUrl { get; set; }
+
+    /// <summary>The post text (capped), so people named in it can be found without fetching anything again.</summary>
+    public string? PostingText { get; set; }
     public DateTime RetrievedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public List<OpportunityStatusChange> StatusHistory { get; set; } = new();

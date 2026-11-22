@@ -27,7 +27,8 @@ public class AgentRelayService : IAgentRelay
         ISuppressionRepository suppressions,
         AgentRelayOptions options,
         ILiveJobFeedService? feeds = null,
-        IAgentSettingsService? settings = null)
+        IAgentSettingsService? settings = null,
+        IRelatedPeopleFinder? relatedPeople = null)
     {
         _runs = runs;
         _profiles = profiles;
@@ -42,7 +43,7 @@ public class AgentRelayService : IAgentRelay
             new FilterStep(),
             new DedupeStep(opportunities),
             _scorer,
-            new ContactFinderStep(contacts),
+            new ContactFinderStep(contacts, relatedPeople, options.MaxSiteLookups),
             new DrafterStep(drafts),
             new ComplianceStep(drafts, suppressions)
         };
